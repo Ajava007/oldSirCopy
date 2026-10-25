@@ -1,0 +1,215 @@
+import { Component, computed, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MockDataService } from '../../core/services/mock-data.service';
+
+type Tab = 'inspections' | 'defects' | 'ncrs' | 'spc';
+
+// Deterministic PRNG so the SPC chart is stable across renders
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl: boolean; }
+
+@Component({
+  selector: 'vx-quality',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <h5 class="fw-bold mb-1">Quality Management (QMS)</h5>
+    <p class="text-muted small mb-3">Inspections, defects, NCR lifecycle, and Statistical Process Control — static data.</p>
+    <ul class="nav nav-pills gap-1 mb-3">
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='inspections'" (click)="tab.set('inspections')" style="color:#e8e5df;">Inspections</button></li>
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='defects'" (click)="tab.set('defects')" style="color:#e8e5df;">Defects</button></li>
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='ncrs'" (click)="tab.set('ncrs')" style="color:#e8e5df;">NCR / Non-Conformance</button></li>
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='spc'" (click)="tab.set('spc')" style="color:#e8e5df;">SPC Charts</button></li>
+    </ul>
+
+    @if (tab()==='inspections') {
+      <div class="vx-card p-0 overflow-auto">
+        <table class="table vx-table table-hover mb-0">
+          <thead><tr><th>Inspection</th><th>Part / Vehicle</th><th>Operation</th><th>Result</th><th>Inspector</th><th>Date</th></tr></thead>
+          <tbody>
+            @for (i of mock.inspections; track i.id) {
+              <tr><td class="mono">{{ i.id }}</td><td>{{ i.part }}</td><td>{{ i.operation }}</td>
+              <td><span class="badge" [style.background]="i.result==='PASS'?'rgba(111,191,115,.18)':i.result==='FAIL'?'rgba(212,106,90,.18)':'rgba(212,168,74,.18)'" [style.color]="i.result==='PASS'?'#6fbf73':i.result==='FAIL'?'#d46a5a':'#d4a84a'">{{ i.result }}</span></td>
+              <td>{{ i.inspector }}</td><td class="mono">{{ i.date }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (tab()==='defects') {
+      <div class="vx-card p-0 overflow-auto">
+        <table class="table vx-table table-hover mb-0">
+          <thead><tr><th>Defect</th><th>VIN</th><th>Category</th><th>Severity</th><th>Description</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (d of mock.defects; track d.id) {
+              <tr><td class="mono">{{ d.id }}</td><td class="mono small">{{ d.vin }}</td><td>{{ d.category }}</td>
+              <td><span class="badge" [style.background]="d.severity==='Critical'?'rgba(212,106,90,.2)':d.severity==='Major'?'rgba(212,168,74,.2)':'rgba(123,168,184,.2)'" [style.color]="d.severity==='Critical'?'#d46a5a':d.severity==='Major'?'#d4a84a':'#7ba8b8'">{{ d.severity }}</span></td>
+              <td class="small">{{ d.description }}</td>
+              <td><span class="badge text-bg-secondary">{{ d.status }}</span></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (tab()==='ncrs') {
+      <div class="vx-card p-0 overflow-auto">
+        <table class="table vx-table table-hover mb-0">
+          <thead><tr><th>NCR</th><th>Title</th><th>VIN</th><th>Stage</th><th>Owner</th><th>Due</th></tr></thead>
+          <tbody>
+            @for (n of mock.ncrs; track n.id) {
+              <tr><td class="mono">{{ n.id }}</td><td class="fw-semibold">{{ n.title }}</td><td class="mono small">{{ n.vin }}</td>
+              <td><span class="badge" [style.background]="n.status==='CLOSED'?'rgba(111,191,115,.18)':'rgba(196,112,70,.18)'" [style.color]="n.status==='CLOSED'?'#6fbf73':'#c47046'">{{ n.status }}</span></td>
+              <td>{{ n.owner }}</td><td class="mono">{{ n.due }}</td></tr>
+            }
+          </tbody>
+        </table>
+        <p class="small text-muted p-2 mb-0">NCR lifecycle: Created → Containment → Investigation → Root Cause → Corrective Action → Rework/Disposition → Verification → Closed. A reworked vehicle must be reinspected.</p>
+      </div>
+    }
+
+    @if (tab()==='spc') {
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="vx-card p-3">
+            <h6 class="fw-bold mb-2">Characteristic</h6>
+            <p class="mb-1 small"><strong>Wheel stud torque</strong> — Subgroup size n=5, 25 subgroups</p>
+            <p class="mb-1 small text-muted">Target: {{ target }} N·m &nbsp;|&nbsp; USL: {{ usl }} &nbsp;|&nbsp; LSL: {{ lsl }}</p>
+            <hr/>
+            <h6 class="fw-bold mb-2">Process Capability</h6>
+            <div class="d-flex justify-content-between small mb-1"><span>Cp</span><strong>{{ cp().toFixed(2) }}</strong></div>
+            <div class="d-flex justify-content-between small mb-1"><span>Cpk</span><strong [style.color]="cpk()<1.33?'#d46a5a':'#6fbf73'">{{ cpk().toFixed(2) }}</strong></div>
+            <div class="d-flex justify-content-between small mb-1"><span>σ̂ (from R̄/d₂)</span><strong>{{ sigmaHat() }}</strong></div>
+            <div class="d-flex justify-content-between small mb-1"><span>X̄̄ (center line)</span><strong>{{ xbarBar() }}</strong></div>
+            <div class="d-flex justify-content-between small mb-1"><span>R̄</span><strong>{{ rbar() }}</strong></div>
+            <div class="d-flex justify-content-between small"><span>Out-of-control points</span><strong [style.color]="oocCount()>0?'#d46a5a':'#6fbf73'">{{ oocCount() }}</strong></div>
+            <p class="small mt-2 mb-0" [style.color]="cpk()>=1.33?'#6fbf73':'#d46a5a'">
+              {{ cpk()>=1.33 ? 'Process is capable (Cpk ≥ 1.33).' : 'Process NOT capable — Cpk below 1.33 threshold. Investigate special causes.' }}
+            </p>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="vx-card p-3 mb-3">
+            <h6 class="fw-bold mb-1">X̄ Chart (subgroup means)</h6>
+            <p class="small text-muted mb-2">UCL = X̄̄ + A₂·R̄ &nbsp;|&nbsp; LCL = X̄̄ − A₂·R̄ (A₂=0.577 for n=5). Red points = out of control.</p>
+            <svg [attr.viewBox]="'0 0 640 220'" style="width:100%;height:auto;background:#fafafa;border-radius:8px;">
+              <!-- control limit lines -->
+              <line x1="40" [attr.y1]="yX(uclX())" x2="620" [attr.y2]="yX(uclX())" stroke="#d46a5a" stroke-width="1" stroke-dasharray="4,3"/>
+              <text x="622" [attr.y]="yX(uclX())+4" font-size="9" fill="#d46a5a">UCL {{ uclX().toFixed(2) }}</text>
+              <line x1="40" [attr.y1]="yX(xbarBar())" x2="620" [attr.y2]="yX(xbarBar())" stroke="#7ba8b8" stroke-width="1.5"/>
+              <text x="622" [attr.y]="yX(xbarBar())+4" font-size="9" fill="#7ba8b8">CL {{ xbarBar().toFixed(2) }}</text>
+              <line x1="40" [attr.y1]="yX(lclX())" x2="620" [attr.y2]="yX(lclX())" stroke="#d46a5a" stroke-width="1" stroke-dasharray="4,3"/>
+              <text x="622" [attr.y]="yX(lclX())+4" font-size="9" fill="#d46a5a">LCL {{ lclX().toFixed(2) }}</text>
+              <!-- connecting line -->
+              <polyline [attr.points]="xbarPolyline()" fill="none" stroke="#2563eb" stroke-width="1.5"/>
+              <!-- points -->
+              @for (p of spcData; track p.subgroup) {
+                <circle [attr.cx]="xPos(p.subgroup)" [attr.cy]="yX(p.xbar)" r="3.5"
+                        [attr.fill]="p.outOfControl ? '#d46a5a' : '#2563eb'"
+                        [attr.stroke]="p.outOfControl ? '#d46a5a' : '#1e40af'" stroke-width="1"/>
+              }
+              <!-- axes -->
+              <line x1="40" y1="10" x2="40" y2="200" stroke="#999" stroke-width="1"/>
+              <line x1="40" y1="200" x2="620" y2="200" stroke="#999" stroke-width="1"/>
+              <text x="330" y="216" font-size="10" fill="#666" text-anchor="middle">Subgroup</text>
+            </svg>
+          </div>
+          <div class="vx-card p-3">
+            <h6 class="fw-bold mb-1">R Chart (subgroup ranges)</h6>
+            <p class="small text-muted mb-2">UCL = D₄·R̄ = 2.114·R̄ &nbsp;|&nbsp; LCL = D₃·R̄ = 0 (n=5)</p>
+            <svg [attr.viewBox]="'0 0 640 160'" style="width:100%;height:auto;background:#fafafa;border-radius:8px;">
+              <line x1="40" [attr.y1]="yR(uclR())" x2="620" [attr.y2]="yR(uclR())" stroke="#d46a5a" stroke-width="1" stroke-dasharray="4,3"/>
+              <text x="622" [attr.y]="yR(uclR())+4" font-size="9" fill="#d46a5a">UCL {{ uclR().toFixed(2) }}</text>
+              <line x1="40" [attr.y1]="yR(rbar())" x2="620" [attr.y2]="yR(rbar())" stroke="#7ba8b8" stroke-width="1.5"/>
+              <text x="622" [attr.y]="yR(rbar())+4" font-size="9" fill="#7ba8b8">R̄ {{ rbar().toFixed(2) }}</text>
+              <polyline [attr.points]="rPolyline()" fill="none" stroke="#0d9488" stroke-width="1.5"/>
+              @for (p of spcData; track p.subgroup) {
+                <circle [attr.cx]="xPos(p.subgroup)" [attr.cy]="yR(p.range)" r="3" fill="#0d9488" stroke="#0f766e" stroke-width="1"/>
+              }
+              <line x1="40" y1="10" x2="40" y2="140" stroke="#999" stroke-width="1"/>
+              <line x1="40" y1="140" x2="620" y2="140" stroke="#999" stroke-width="1"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    }
+  `,
+  styles: ['.mono{font-family:monospace;}']
+})
+export class QualityComponent implements OnInit {
+  tab = signal<Tab>('inspections');
+
+  // SPC parameters
+  readonly target = 100;
+  readonly usl = 106;
+  readonly lsl = 94;
+  readonly n = 5;            // subgroup size
+  readonly A2 = 0.577;       // for n=5
+  readonly D3 = 0;
+  readonly D4 = 2.114;
+  readonly d2 = 2.326;
+
+  spcData: SpcPoint[] = [];
+
+  constructor(public mock: MockDataService) {
+    // Generate 25 deterministic subgroups of n=5 readings
+    const rand = mulberry32(42);
+    const sigma = 2.2;
+    for (let s = 1; s <= 25; s++) {
+      const readings: number[] = [];
+      for (let i = 0; i < this.n; i++) {
+        // Box-Muller for normal distribution; inject a special-cause shift at subgroup 18
+        const meanShift = s >= 18 ? 3.5 : 0;
+        const u1 = rand(), u2 = rand();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        readings.push(this.target + meanShift + z * sigma);
+      }
+      const xbar = readings.reduce((a, b) => a + b, 0) / this.n;
+      const range = Math.max(...readings) - Math.min(...readings);
+      this.spcData.push({ subgroup: s, xbar, range, outOfControl: false });
+    }
+    // Mark out-of-control after limits are computed (done in computed below via flag)
+  }
+
+  xbarBar = computed(() => this.spcData.reduce((a, p) => a + p.xbar, 0) / this.spcData.length);
+  rbar = computed(() => this.spcData.reduce((a, p) => a + p.range, 0) / this.spcData.length);
+  uclX = computed(() => this.xbarBar() + this.A2 * this.rbar());
+  lclX = computed(() => this.xbarBar() - this.A2 * this.rbar());
+  uclR = computed(() => this.D4 * this.rbar());
+  lclR = computed(() => this.D3 * this.rbar());
+  sigmaHat = computed(() => this.rbar() / this.d2);
+  cp = computed(() => (this.usl - this.lsl) / (6 * this.sigmaHat()));
+  cpk = computed(() => {
+    const upper = (this.usl - this.xbarBar()) / (3 * this.sigmaHat());
+    const lower = (this.xbarBar() - this.lsl) / (3 * this.sigmaHat());
+    return Math.min(upper, lower);
+  });
+  oocCount = computed(() => this.spcData.filter(p => p.xbar > this.uclX() || p.xbar < this.lclX()).length);
+
+  xPos(s: number) { return 40 + (s - 1) * (580 / 24); }
+  yX(v: number) {
+    const min = this.lclX() - 1, max = this.uclX() + 1;
+    return 190 - ((v - min) / (max - min)) * 170;
+  }
+  yR(v: number) {
+    const max = this.uclR() * 1.15;
+    return 130 - (v / max) * 115;
+  }
+  xbarPolyline = computed(() => this.spcData.map(p => `${this.xPos(p.subgroup)},${this.yX(p.xbar)}`).join(' '));
+  rPolyline = computed(() => this.spcData.map(p => `${this.xPos(p.subgroup)},${this.yR(p.range)}`).join(' '));
+
+  // outOfControl flag used in template via direct comparison (template checks p.outOfControl which is always false;
+  // we instead color by computed comparison — but template uses p.outOfControl, so set it here)
+  ngOnInit() {
+    this.spcData.forEach(p => { p.outOfControl = p.xbar > this.uclX() || p.xbar < this.lclX(); });
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["admin-layout.component.ts"],
+  "sourcesContent": ["\n    .nav-link.active { background: rgba(37,99,235,.08); color:#2563eb !important; font-weight:600; }\n    .nav-link:hover:not(.disabled) { background: #f1f5f9; color:#0f172a !important; }\n  "],
+  "mappings": ";AACI,CAAA,QAAA,CAAA;AAAmB,cAAA,KAAA,EAAA,EAAA,EAAA,EAAA,GAAA,EAAA;AAAiC,SAAA;AAA0B,eAAA;;AAC9E,CADA,QACA,MAAA,KAAA,CAAA;AAAiC,cAAA;AAAqB,SAAA;;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["global-search.component.ts"],
+  "sourcesContent": [".mono{font-family:ui-monospace,monospace;font-size:.75rem;}"],
+  "mappings": ";AAAA,CAAA;AAAM,eAAA,YAAA,EAAA;AAAmC,aAAA;;",
+  "names": []
+}

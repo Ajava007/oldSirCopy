@@ -1,0 +1,105 @@
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MockDataService, YardSlot } from '../../core/services/mock-data.service';
+
+@Component({
+  selector: 'vx-finished-vehicles',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <h5 class="fw-bold mb-1" style="color:#0f172a;">Finished Vehicle Yard</h5>
+    <p class="mb-3" style="color:#64748b;font-size:.9rem;">Yard visibility — VIN × position × quality / release / sales / allocation status. Phase 2A.</p>
+
+    <div class="vx-card p-4 mb-3">
+      <h6 class="fw-bold mb-3" style="color:#0f172a;">Yard map</h6>
+      <div class="d-flex flex-wrap gap-3">
+        @for (row of rows(); track row) {
+          <div>
+            <div class="text-center text-uppercase mb-1" style="color:#94a3b8;font-size:.65rem;font-weight:700;">Row {{ row }}</div>
+            <div class="d-flex gap-2">
+              @for (slot of slotsByRow(row); track slot.id) {
+                <div class="rounded-2 border d-flex flex-column justify-content-between p-2"
+                     [style.background]="slotBg(slot)"
+                     [style.border-color]="slotBorder(slot)"
+                     style="width:120px;min-height:84px;cursor:pointer;"
+                     (click)="selectedSlot.set(slot)">
+                  <div class="mono" style="font-size:.6rem;" [style.color]="slotTextColor(slot)">{{ slot.id }}</div>
+                  @if (slot.vin) {
+                    <div class="mono fw-bold" style="font-size:.62rem;color:#fff;word-break:break-all;">{{ slot.vin }}</div>
+                    <div style="font-size:.6rem;color:rgba(255,255,255,.85);">{{ slot.model }}</div>
+                  } @else {
+                    <div class="text-center" style="color:#cbd5e1;font-size:.7rem;margin-top:1rem;">empty</div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="d-flex gap-3 mt-3 small" style="color:#64748b;">
+        <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:#059669;"></span>Released</span>
+        <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:#d97706;"></span>Hold</span>
+        <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:#dc2626;"></span>Quarantine</span>
+        <span><span class="d-inline-block rounded me-1" style="width:12px;height:12px;background:#f8fafc;border:1px solid #e2e8f0;"></span>Empty</span>
+      </div>
+    </div>
+
+    @if (selectedSlot(); as s) {
+      <div class="vx-card p-4 mb-3" style="border-left:4px solid #2563eb;">
+        <h6 class="fw-bold mb-2" style="color:#0f172a;">Slot {{ s.id }} @if (s.vin) { — <span class="mono">{{ s.vin }}</span> }</h6>
+        @if (s.vin) {
+          <div class="row g-2 small">
+            <div class="col-6 col-md-3"><span style="color:#64748b;">Model:</span> <strong>{{ s.model }}</strong></div>
+            <div class="col-6 col-md-3"><span style="color:#64748b;">Quality:</span> <strong>{{ s.qualityStatus }}</strong></div>
+            <div class="col-6 col-md-3"><span style="color:#64748b;">Release:</span> <strong>{{ s.releaseStatus }}</strong></div>
+            <div class="col-6 col-md-3"><span style="color:#64748b;">Sales:</span> <strong>{{ s.salesStatus }}</strong></div>
+            <div class="col-6 col-md-3"><span style="color:#64748b;">Allocation:</span> <strong>{{ s.allocationStatus }}</strong></div>
+          </div>
+          @if (s.releaseStatus !== 'RELEASED') {
+            <p class="small mt-2 mb-0" style="color:#dc2626;"><i class="bi bi-exclamation-triangle me-1"></i>Vehicle cannot be dispatched — release status: {{ s.releaseStatus }}.</p>
+          }
+        } @else {
+          <p class="small mb-0" style="color:#94a3b8;">Empty slot — available for finished vehicle parking.</p>
+        }
+      </div>
+    }
+
+    <div class="vx-card p-0 overflow-auto">
+      <table class="table vx-table table-hover mb-0">
+        <thead><tr><th>Slot</th><th>VIN</th><th>Model</th><th>Quality</th><th>Release</th><th>Sales</th><th>Allocation</th></tr></thead>
+        <tbody>
+          @for (s of mock.yardSlots; track s.id) {
+            <tr [style.cursor]="'pointer'" (click)="selectedSlot.set(s)">
+              <td class="mono fw-bold">{{ s.id }}</td>
+              <td class="mono">{{ s.vin ?? '—' }}</td><td>{{ s.model }}</td>
+              <td><span class="badge" [style.background]="badge(s.qualityStatus).bg" [style.color]="badge(s.qualityStatus).fg">{{ s.qualityStatus }}</span></td>
+              <td>{{ s.releaseStatus }}</td><td>{{ s.salesStatus }}</td><td>{{ s.allocationStatus }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  `,
+  styles: ['.mono{font-family:ui-monospace,monospace;}']
+})
+export class FinishedVehiclesComponent {
+  selectedSlot = signal<YardSlot | null>(null);
+  constructor(public mock: MockDataService) {}
+  rows() { return [...new Set(this.mock.yardSlots.map(s => s.row))]; }
+  slotsByRow(r: string) { return this.mock.yardSlots.filter(s => s.row === r); }
+  slotBg(s: YardSlot) { return s.vin ? this.slotColor(s).bg : '#f8fafc'; }
+  slotBorder(s: YardSlot) { return s.vin ? this.slotColor(s).border : '#e2e8f0'; }
+  slotTextColor(s: YardSlot) { return s.vin ? '#ffffff' : '#94a3b8'; }
+  slotColor(s: YardSlot) {
+    if (s.qualityStatus === 'RELEASED') return { bg: '#059669', border: '#059669' };
+    if (s.qualityStatus === 'HOLD') return { bg: '#d97706', border: '#d97706' };
+    if (s.qualityStatus === 'QUARANTINE') return { bg: '#dc2626', border: '#dc2626' };
+    return { bg: '#f8fafc', border: '#e2e8f0' };
+  }
+  badge(status: string) {
+    if (status === 'RELEASED') return { bg: 'rgba(5,150,105,.12)', fg: '#059669' };
+    if (status === 'HOLD') return { bg: 'rgba(217,119,6,.12)', fg: '#d97706' };
+    if (status === 'QUARANTINE') return { bg: 'rgba(220,38,38,.12)', fg: '#dc2626' };
+    return { bg: '#f1f5f9', fg: '#94a3b8' };
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/environments/environment.ts"],
+  "sourcesContent": ["export const environment = {\n  production: false,\n  apiBaseUrl: '/api/v1',\n  // When true, all services return in-memory mock data (no backend needed).\n  // Set to false to hit the real Spring Boot API at apiBaseUrl.\n  useMock: true\n};\n"],
+  "mappings": ";AAAO,IAAM,cAAc;EACzB,YAAY;EACZ,YAAY;;;EAGZ,SAAS;;",
+  "names": []
+}

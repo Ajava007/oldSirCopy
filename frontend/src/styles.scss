@@ -1,0 +1,104 @@
+// VeynaX modern light theme — clean SaaS aesthetic
+// Neutrals (slate) + electric blue primary + teal accent
+$vx-bg: #f4f6fb;
+$vx-card: #ffffff;
+$vx-text: #0f172a;
+$vx-muted: #64748b;
+$vx-primary: #2563eb;
+$vx-primary-dark: #1d4ed8;
+$vx-primary-soft: rgba(37, 99, 235, 0.08);
+$vx-accent: #0d9488;
+$vx-border: #e2e8f0;
+$vx-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+$vx-shadow-lg: 0 10px 30px -12px rgba(15, 23, 42, 0.18);
+
+$primary: #2563eb !default;
+$body-bg: #f4f6fb !default;
+$body-color: #0f172a !default;
+$border-color: #e2e8f0 !default;
+
+@import "../node_modules/bootstrap/scss/bootstrap";
+@import "../node_modules/bootstrap-icons/font/bootstrap-icons.css";
+
+body {
+  background-color: $vx-bg;
+  color: $vx-text;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.vx-card {
+  background: $vx-card;
+  border: 1px solid $vx-border;
+  border-radius: 16px;
+  box-shadow: $vx-shadow;
+}
+
+.vx-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: #{$vx-text};
+  --bs-table-border-color: #{$vx-border};
+  --bs-table-hover-bg: rgba(37, 99, 235, 0.04);
+  th {
+    color: $vx-muted;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid $vx-border !important;
+  }
+  td { border-bottom: 1px solid lighten($vx-border, 3%); }
+}
+
+.form-control, .form-select {
+  background-color: #ffffff;
+  border-color: $vx-border;
+  color: $vx-text;
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  &:focus {
+    background-color: #fff;
+    color: $vx-text;
+    border-color: $vx-primary;
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+  }
+  &::placeholder { color: #94a3b8; }
+}
+
+.btn { border-radius: 10px; font-weight: 600; }
+.btn-primary {
+  --bs-btn-bg: #{$vx-primary};
+  --bs-btn-border-color: #{$vx-primary};
+  --bs-btn-hover-bg: #{$vx-primary-dark};
+  --bs-btn-hover-border-color: #{$vx-primary-dark};
+  --bs-btn-active-bg: #{$vx-primary-dark};
+  --bs-btn-active-border-color: #{$vx-primary-dark};
+  --bs-btn-disabled-bg: #{$vx-primary};
+  box-shadow: 0 4px 12px -4px rgba(37, 99, 235, 0.4);
+}
+.btn-outline-secondary {
+  --bs-btn-color: #{$vx-muted};
+  --bs-btn-border-color: #{$vx-border};
+  --bs-btn-hover-bg: #f8fafc;
+  --bs-btn-hover-color: #{$vx-text};
+  --bs-btn-hover-border-color: #cbd5e1;
+}
+.btn-outline-danger {
+  --bs-btn-color: #dc2626;
+  --bs-btn-border-color: #fecaca;
+  --bs-btn-hover-bg: #fef2f2;
+  --bs-btn-hover-color: #b91c1c;
+}
+
+a { color: $vx-primary; text-decoration: none; }
+a:hover { color: $vx-primary-dark; }
+.text-muted { color: $vx-muted !important; }
+.bg-dark-card { background-color: $vx-card; }
+
+.nav-pills .nav-link {
+  border-radius: 10px;
+  color: $vx-muted;
+  font-weight: 500;
+  &.active { background: $vx-primary-soft; color: $vx-primary !important; }
+}
+.badge { font-weight: 600; }

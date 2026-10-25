@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["status-badge.component.ts"],
+  "sourcesContent": [".badge{display:inline-block;padding:.25rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap;}"],
+  "mappings": ";AAAA,CAAA;AAAO,WAAA;AAAqB,WAAA,QAAA;AAAqB,iBAAA;AAAqB,aAAA;AAAgB,eAAA;AAAgB,kBAAA;AAAqB,eAAA;;",
+  "names": []
+}
