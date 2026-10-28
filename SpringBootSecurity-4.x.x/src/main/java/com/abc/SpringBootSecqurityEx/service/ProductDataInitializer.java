@@ -7,6 +7,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -24,13 +25,13 @@ public class ProductDataInitializer implements CommandLineRunner {
             return;
         }
 
-        ProductEntity laptop = product("Laptop", "Electronics", "999.99", 10,
-                "High-performance laptop", "https://picsum.photos/200", false);
-        ProductEntity book = product("Java Programming Book", "Books", "29.99", 50,
-                "A practical guide to Java", "https://picsum.photos/201", false);
-        ProductEntity premiumLaptop = product("Premium Laptop", "Electronics", "1999.99", 5,
-                "Premium high-performance laptop", "https://picsum.photos/300", true);
-        productRepository.saveAll(List.of(laptop, book, premiumLaptop));
+        String[] names = {"Brake Pad", "Oil Filter", "Air Filter", "Wheel", "Door Panel", "Seat Belt", "Head Light", "Battery", "Mirror", "Radiator", "Fuel Pump", "Spark Plug", "Wiper Blade", "Steering Rack", "Floor Mat", "Window Glass", "Door Handle", "Fan Belt", "Coolant Hose", "Safety Sensor"};
+        List<ProductEntity> products = new ArrayList<>();
+        for (int i = 1; i <= names.length; i++) {
+            products.add(product(names[i - 1], "Vehicle Parts", String.valueOf(18.0 + i * 7.5),
+                    25 + i, "Replacement " + names[i - 1] + " for a Northstar vehicle.", null, i == 20));
+        }
+        productRepository.saveAll(products);
     }
 
     private ProductEntity product(String name, String category, String price, int stock,

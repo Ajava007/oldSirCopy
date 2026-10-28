@@ -34,6 +34,13 @@ public class InspectionService {
     }
 
     @Transactional(readOnly = true)
+    public Page<QualityDtos.DefectResponse> findDefects(Pageable pageable) {
+        return defectRepository.findAll(pageable).map(d -> new QualityDtos.DefectResponse(
+                d.getId(), d.getDefectNumber(), d.getInspectionId(), d.getVin(), d.getPartCode(),
+                d.getDescription(), d.getSeverity(), d.getStatus(), d.getCreatedAt()));
+    }
+
+    @Transactional(readOnly = true)
     public List<QualityDtos.InspectionResponse> findByVin(String vin) {
         return inspectionRepository.findByVin(vin).stream().map(this::toResponse).toList();
     }

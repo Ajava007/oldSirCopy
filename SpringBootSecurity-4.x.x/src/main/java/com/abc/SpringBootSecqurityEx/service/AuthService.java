@@ -92,7 +92,7 @@ public class AuthService {
         user.setAccountNonExpired(true);
         user.setCredentialsNonExpired(true);
         user.setAccountNonLocked(true);
-        user.setRoles(EnumSet.of(ERole.SUPER_ADMIN));
+        user.setRoles(EnumSet.of(ERole.VIEWER));
 
         return user;
     }

@@ -1,6 +1,6 @@
 import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService, ApprovalItem } from '../../core/services/mock-data.service';
+import { AppDataService, ApprovalItem } from '../../core/services/app-data.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { ConfirmDialogService } from '../../shared/services/confirm-dialog.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -46,11 +46,11 @@ type Filter = 'ALL' | ApprovalItem['type'];
 export class ApprovalQueuesComponent {
   filter = signal<Filter>('ALL');
   filters: Filter[] = ['ALL', 'PO', 'ECR', 'QUALITY_RELEASE', 'VEHICLE_RELEASE', 'MAINTENANCE'];
-  items = signal<ApprovalItem[]>([...this.mock.approvalQueues]);
+  items = signal<ApprovalItem[]>([...this.data.approvalQueues]);
 
   visible = computed(() => this.filter() === 'ALL' ? this.items() : this.items().filter(i => i.type === this.filter()));
 
-  constructor(private mock: MockDataService, private confirm: ConfirmDialogService, private toast: ToastService) {}
+  constructor(private data: AppDataService, private confirm: ConfirmDialogService, private toast: ToastService) {}
 
   countFor(f: Filter) { return f === 'ALL' ? this.items().length : this.items().filter(i => i.type === f).length; }
   badgeBg(f: Filter) { return this.filter() === f ? 'rgba(255,255,255,.25)' : '#e2e8f0'; }

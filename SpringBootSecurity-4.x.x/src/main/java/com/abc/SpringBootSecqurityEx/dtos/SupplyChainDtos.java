@@ -50,4 +50,7 @@ public final class SupplyChainDtos {
 
     public record StatusTransitionRequest(@NotBlank(message = "Target status is required") String targetStatus,
                                           @Size(max = 100) String actor) {}
+
+    public record ReceiveRequest(@NotBlank(message = "Warehouse is required") @Size(max = 60) String warehouse,
+                                 @Size(max = 300) String remark) {}
 }

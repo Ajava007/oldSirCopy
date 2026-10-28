@@ -7,14 +7,8 @@ import { firstValidationMessage } from '../../validation/validation-messages';
   selector: 'vx-field-error',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    @if (message(); as msg) {
-      <div class="d-flex align-items-center gap-1 mt-1" style="color:#dc2626;font-size:.75rem;font-weight:500;" role="alert">
-        <i class="bi bi-exclamation-circle-fill" style="font-size:.7rem;"></i>
-        <span>{{ msg }}</span>
-      </div>
-    }
-  `
+  templateUrl: './field-error.component.html',
+  styleUrls: ['./field-error.component.scss']
 })
 export class FieldErrorComponent {
   @Input({ required: true }) control!: AbstractControl | null;

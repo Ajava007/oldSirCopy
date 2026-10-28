@@ -1,0 +1,39 @@
+
+    <h5 class="fw-bold mb-1">Vehicle History</h5>
+    <p class="text-muted small mb-3">Choose a vehicle from a sales order to see its quality checks and release status.</p>
+    @if (loading()) { <p class="small text-muted">Loading vehicles…</p> }
+    @if (error()) { <div class="alert alert-warning">{{ error() }}</div> }
+    @if (!loading() && vehicles().length === 0) {
+      <div class="vx-card p-3"><h6>No vehicles with a VIN</h6><p class="small text-muted mb-0">Sales orders do not have vehicle identification numbers yet.</p></div>
+    }
+    @if (vehicles().length) {
+      <div class="vx-card p-3 mb-3">
+        <label for="vehicle" class="form-label small fw-semibold">Vehicle identification number (VIN)</label>
+        <select id="vehicle" class="form-select" [value]="selectedVin()" (change)="select(($any($event.target)).value)">
+          @for (vehicle of vehicles(); track vehicle.vin) { <option [value]="vehicle.vin">{{ vehicle.vin }} · {{ vehicle.model }} · Order {{ vehicle.order }}</option> }
+        </select>
+      </div>
+    }
+    @if (selectedVin()) {
+      <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-primary btn-sm" (click)="loadHistory()">Refresh history</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="downloadReport()" [disabled]="reportLoading()">Download vehicle report</button>
+      </div>
+      @if (gate(); as check) {
+        <div class="vx-card p-3 mb-3">
+          <h6 class="fw-bold">Can this vehicle leave the factory?</h6>
+          <span class="badge" [class.text-bg-success]="check.passed" [class.text-bg-danger]="!check.passed">{{ check.passed ? 'Ready' : 'Needs attention' }}</span>
+          @if (check.reasons?.length) { <ul class="small mt-2 mb-0">@for (reason of check.reasons; track reason) { <li>{{ reason }}</li> }</ul> }
+        </div>
+      }
+      <div class="vx-card p-0 overflow-auto">
+        <h6 class="fw-bold p-3 mb-0">Quality checks</h6>
+        @if (!inspections().length) { <p class="small text-muted px-3 pb-3">No quality checks have been recorded for this vehicle.</p> }
+        @if (inspections().length) {
+          <table class="table table-hover mb-0"><thead><tr><th>Check</th><th>Type</th><th>Result</th><th>Inspector</th><th>Date</th></tr></thead>
+            <tbody>@for (item of inspections(); track item.inspectionNumber ?? item.id) { <tr><td>{{ item.inspectionNumber ?? item.id }}</td><td>{{ item.type }}</td><td>{{ item.result }}</td><td>{{ item.inspectorName ?? '—' }}</td><td>{{ item.inspectedAt ?? item.createdAt ?? '—' }}</td></tr> }</tbody>
+          </table>
+        }
+      </div>
+    }
+  

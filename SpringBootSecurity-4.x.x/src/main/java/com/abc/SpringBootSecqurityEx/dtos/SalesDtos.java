@@ -40,6 +40,13 @@ public final class SalesDtos {
             LocalDate orderDate, BigDecimal totalAmount, String status, String paymentStatus,
             LocalDateTime dispatchedAt, LocalDateTime deliveredAt, Instant createdAt) {}
 
+    public record PaymentRequest(@NotNull @DecimalMin(value = "0.01") BigDecimal amount,
+                                 @NotBlank @Size(max = 30) String method,
+                                 @Size(max = 100) String reference) {}
+
+    public record PaymentResponse(Long id, Long salesOrderId, String soNumber, BigDecimal amount,
+                                  String method, String reference, String status, Instant paidAt) {}
+
     public record AllocateRequest(@NotBlank String vin) {}
     public record TransitionRequest(@NotBlank String targetStatus) {}
 

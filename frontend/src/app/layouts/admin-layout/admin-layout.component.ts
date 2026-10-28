@@ -24,26 +24,26 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/c
         </div>
         <nav class="nav flex-column gap-1" style="font-size:.85rem;">
           <a class="nav-link rounded px-2 py-2" routerLink="/dashboard" routerLinkActive="active" style="color:#334155;"><i class="bi bi-grid-1x2 me-2"></i>Dashboard</a>
-          <div class="text-uppercase px-2 mt-3 mb-1" style="color:#94a3b8;font-size:.62rem;letter-spacing:.12em;font-weight:700;">Master Data</div>
+          <div class="text-uppercase px-2 mt-3 mb-1" style="color:#94a3b8;font-size:.62rem;letter-spacing:.12em;font-weight:700;">Company Setup</div>
           <a class="nav-link rounded px-2 py-2" routerLink="/master-data/organizations" routerLinkActive="active" style="color:#334155;"><i class="bi bi-building me-2"></i>Organizations</a>
           <a class="nav-link rounded px-2 py-2" routerLink="/master-data/factories" routerLinkActive="active" style="color:#334155;"><i class="bi bi-houses me-2"></i>Factories</a>
           <a class="nav-link rounded px-2 py-2" routerLink="/master-data/vehicle-models" routerLinkActive="active" style="color:#334155;"><i class="bi bi-car-front me-2"></i>Vehicle Models</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/vehicle-config" routerLinkActive="active" style="color:#334155;"><i class="bi bi-sliders me-2"></i>Variants / Config</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/vehicle-config" routerLinkActive="active" style="color:#334155;"><i class="bi bi-sliders me-2"></i>Vehicle Options</a>
           <div class="text-uppercase px-2 mt-3 mb-1" style="color:#94a3b8;font-size:.62rem;letter-spacing:.12em;font-weight:700;">Operations</div>
-          <a class="nav-link rounded px-2 py-2" routerLink="/engineering" routerLinkActive="active" style="color:#334155;"><i class="bi bi-diagram-3 me-2"></i>Engineering / BOM</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/supply-chain" routerLinkActive="active" style="color:#334155;"><i class="bi bi-truck me-2"></i>Supply Chain</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/inventory" routerLinkActive="active" style="color:#334155;"><i class="bi bi-box-seam me-2"></i>Inventory / MRP</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/production" routerLinkActive="active" style="color:#334155;"><i class="bi bi-clipboard-check me-2"></i>Production / MES</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/scheduling" routerLinkActive="active" style="color:#334155;"><i class="bi bi-calendar3 me-2"></i>Scheduling Board</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/quality" routerLinkActive="active" style="color:#334155;"><i class="bi bi-shield-check me-2"></i>Quality / NCR</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/vin-traceability" routerLinkActive="active" style="color:#334155;"><i class="bi bi-fingerprint me-2"></i>VIN Traceability</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/engineering" routerLinkActive="active" style="color:#334155;"><i class="bi bi-diagram-3 me-2"></i>Parts &amp; Build Steps</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/supply-chain" routerLinkActive="active" style="color:#334155;"><i class="bi bi-truck me-2"></i>Suppliers &amp; Orders</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/inventory" routerLinkActive="active" style="color:#334155;"><i class="bi bi-box-seam me-2"></i>Stock &amp; Parts Needed</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/production" routerLinkActive="active" style="color:#334155;"><i class="bi bi-clipboard-check me-2"></i>Build Orders</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/scheduling" routerLinkActive="active" style="color:#334155;"><i class="bi bi-calendar3 me-2"></i>Work Schedule</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/quality" routerLinkActive="active" style="color:#334155;"><i class="bi bi-shield-check me-2"></i>Quality Checks</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/vin-traceability" routerLinkActive="active" style="color:#334155;"><i class="bi bi-fingerprint me-2"></i>Vehicle History</a>
           <div class="text-uppercase px-2 mt-3 mb-1" style="color:#94a3b8;font-size:.62rem;letter-spacing:.12em;font-weight:700;">Commercial &amp; Support</div>
-          <a class="nav-link rounded px-2 py-2" routerLink="/sales-payments" routerLinkActive="active" style="color:#334155;"><i class="bi bi-credit-card me-2"></i>Sales &amp; Payments</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/finished-vehicles" routerLinkActive="active" style="color:#334155;"><i class="bi bi-geo-alt me-2"></i>Finished Vehicle Yard</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/sales-payments" routerLinkActive="active" style="color:#334155;"><i class="bi bi-credit-card me-2"></i>Sales &amp; Customers</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/finished-vehicles" routerLinkActive="active" style="color:#334155;"><i class="bi bi-geo-alt me-2"></i>Vehicle Yard</a>
           <a class="nav-link rounded px-2 py-2" routerLink="/approval-queues" routerLinkActive="active" style="color:#334155;"><i class="bi bi-check2-square me-2"></i>Approval Queues</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/workforce" routerLinkActive="active" style="color:#334155;"><i class="bi bi-people me-2"></i>Workforce</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/maintenance" routerLinkActive="active" style="color:#334155;"><i class="bi bi-tools me-2"></i>Maintenance</a>
-          <a class="nav-link rounded px-2 py-2" routerLink="/safety" routerLinkActive="active" style="color:#334155;"><i class="bi bi-shield-exclamation me-2"></i>Health &amp; Safety</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/workforce" routerLinkActive="active" style="color:#334155;"><i class="bi bi-people me-2"></i>Workers &amp; Shifts</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/maintenance" routerLinkActive="active" style="color:#334155;"><i class="bi bi-tools me-2"></i>Machine Repairs</a>
+          <a class="nav-link rounded px-2 py-2" routerLink="/safety" routerLinkActive="active" style="color:#334155;"><i class="bi bi-shield-exclamation me-2"></i>Safety</a>
           <a class="nav-link rounded px-2 py-2" routerLink="/reports" routerLinkActive="active" style="color:#334155;"><i class="bi bi-graph-up me-2"></i>Reports</a>
           <a class="nav-link rounded px-2 py-2" routerLink="/audit-log" routerLinkActive="active" style="color:#334155;"><i class="bi bi-journal-text me-2"></i>Audit Log</a>
         </nav>

@@ -56,4 +56,10 @@ public final class ProductionDtos {
             String operatorName,
             @Min(0) Integer producedQuantity,
             @Min(0) Integer rejectedQuantity) {}
+
+    public record MaterialLine(String partCode, java.math.BigDecimal requiredQuantity,
+                               java.math.BigDecimal availableQuantity, boolean sufficient) {}
+
+    public record MaterialCheckResponse(String modelCode, Integer vehicleQuantity,
+                                        boolean sufficient, List<MaterialLine> materials) {}
 }

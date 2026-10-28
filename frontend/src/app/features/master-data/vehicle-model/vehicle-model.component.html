@@ -1,0 +1,51 @@
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div><h5 class="fw-bold mb-0">Vehicle Models</h5><small class="text-muted">Product master — variants, BOM and routing attach to these in Phase 2.</small></div>
+      <button class="btn btn-primary btn-sm" (click)="toggleForm()"><i class="bi bi-plus-lg me-1"></i>{{ showForm() ? 'Cancel' : 'New model' }}</button>
+    </div>
+
+    @if (showForm()) {
+      <div class="vx-card p-3 mb-3">
+        <form [formGroup]="form" (ngSubmit)="save()" class="row g-2">
+          <div class="col-md-2"><input class="form-control form-control-sm" formControlName="modelCode" placeholder="Model code *"><vx-field-error [control]="form.get('modelCode')" /></div>
+          <div class="col-md-3"><input class="form-control form-control-sm" formControlName="modelName" placeholder="Model name *"><vx-field-error [control]="form.get('modelName')" /></div>
+          <div class="col-md-2"><input class="form-control form-control-sm" formControlName="brand" placeholder="Brand *"><vx-field-error [control]="form.get('brand')" /></div>
+          <div class="col-md-2"><input class="form-control form-control-sm" formControlName="vehicleType" placeholder="Type (SUV, Sedan…)"><vx-field-error [control]="form.get('vehicleType')" /></div>
+          <div class="col-md-1"><input class="form-control form-control-sm" formControlName="modelYear" placeholder="Year"><vx-field-error [control]="form.get('modelYear')" /></div>
+          <div class="col-md-1"><input class="form-control form-control-sm" formControlName="fuelType" placeholder="Fuel"><vx-field-error [control]="form.get('fuelType')" /></div>
+          <div class="col-md-1"><input class="form-control form-control-sm" formControlName="basePrice" placeholder="Price" type="number"><vx-field-error [control]="form.get('basePrice')" /></div>
+          <div class="col-md-12 d-flex gap-2 align-items-center">
+            <select class="form-select form-select-sm" formControlName="status" style="max-width:180px;">
+              <option value="DRAFT">DRAFT</option><option value="ACTIVE">ACTIVE</option><option value="DISCONTINUED">DISCONTINUED</option>
+            </select>
+            <button class="btn btn-primary btn-sm" type="submit" [disabled]="saving()">{{ editingId() ? 'Save changes' : 'Add model' }}</button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <div class="vx-card p-0 overflow-auto">
+      <table class="table vx-table table-hover align-middle mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Type</th><th>Year</th><th class="text-end">Base price</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+          @if (loading()) { <tr><td colspan="8" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm"></span> Loading…</td></tr> }
+          @for (m of items(); track m.id) {
+            <tr>
+              <td class="mono">{{ m.modelCode }}</td>
+              <td class="fw-semibold">{{ m.modelName }}</td>
+              <td>{{ m.brand }}</td>
+              <td>{{ m.vehicleType || '—' }}</td>
+              <td>{{ m.modelYear || '—' }}</td>
+              <td class="text-end mono">{{ m.basePrice != null ? m.basePrice.toLocaleString() : '—' }}</td>
+              <td><span class="badge" [style.background]="m.status==='ACTIVE' ? 'rgba(111,191,115,.18)' : m.status==='DRAFT' ? 'rgba(123,168,184,.18)' : 'rgba(212,106,90,.18)'" [style.color]="m.status==='ACTIVE' ? '#6fbf73' : m.status==='DRAFT' ? '#7ba8b8' : '#d46a5a'">{{ m.status }}</span></td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="edit(m)"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" (click)="remove(m)"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+          }
+          @if (!loading() && items().length===0) { <tr><td colspan="8" class="text-center text-muted py-4">No vehicle models yet.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  

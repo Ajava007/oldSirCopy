@@ -31,8 +31,8 @@ export function paletteForStatus(status: string | null | undefined): BadgePalett
   selector: 'vx-status-badge',
   standalone: true,
   imports: [CommonModule],
-  template: `<span class="badge" [style.background]="styles().bg" [style.color]="styles().fg">{{ label }}</span>`,
-  styles: ['.badge{display:inline-block;padding:.25rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap;}']
+  templateUrl: './status-badge.component.html',
+  styleUrls: ['./status-badge.component.scss']
 })
 export class StatusBadgeComponent {
   @Input({ required: true }) label!: string;

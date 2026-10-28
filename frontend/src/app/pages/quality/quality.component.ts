@@ -1,18 +1,9 @@
 import { Component, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { AppDataService } from '../../core/services/app-data.service';
+import { BackendApiService } from '../../core/services/backend-api.service';
 
 type Tab = 'inspections' | 'defects' | 'ncrs' | 'spc';
-
-// Deterministic PRNG so the SPC chart is stable across renders
-function mulberry32(seed: number) {
-  return function () {
-    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl: boolean; }
 
@@ -22,7 +13,7 @@ interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl
   imports: [CommonModule],
   template: `
     <h5 class="fw-bold mb-1">Quality Management (QMS)</h5>
-    <p class="text-muted small mb-3">Inspections, defects, NCR lifecycle, and Statistical Process Control — static data.</p>
+    <p class="text-muted small mb-3">Inspections and NCRs load from the backend. Defect listing and SPC measurements are not exposed by the current API.</p>
     <ul class="nav nav-pills gap-1 mb-3">
       <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='inspections'" (click)="tab.set('inspections')" style="color:#e8e5df;">Inspections</button></li>
       <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='defects'" (click)="tab.set('defects')" style="color:#e8e5df;">Defects</button></li>
@@ -35,7 +26,7 @@ interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>Inspection</th><th>Part / Vehicle</th><th>Operation</th><th>Result</th><th>Inspector</th><th>Date</th></tr></thead>
           <tbody>
-            @for (i of mock.inspections; track i.id) {
+            @for (i of data.inspections; track i.id) {
               <tr><td class="mono">{{ i.id }}</td><td>{{ i.part }}</td><td>{{ i.operation }}</td>
               <td><span class="badge" [style.background]="i.result==='PASS'?'rgba(111,191,115,.18)':i.result==='FAIL'?'rgba(212,106,90,.18)':'rgba(212,168,74,.18)'" [style.color]="i.result==='PASS'?'#6fbf73':i.result==='FAIL'?'#d46a5a':'#d4a84a'">{{ i.result }}</span></td>
               <td>{{ i.inspector }}</td><td class="mono">{{ i.date }}</td></tr>
@@ -50,7 +41,7 @@ interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>Defect</th><th>VIN</th><th>Category</th><th>Severity</th><th>Description</th><th>Status</th></tr></thead>
           <tbody>
-            @for (d of mock.defects; track d.id) {
+            @for (d of data.defects; track d.id) {
               <tr><td class="mono">{{ d.id }}</td><td class="mono small">{{ d.vin }}</td><td>{{ d.category }}</td>
               <td><span class="badge" [style.background]="d.severity==='Critical'?'rgba(212,106,90,.2)':d.severity==='Major'?'rgba(212,168,74,.2)':'rgba(123,168,184,.2)'" [style.color]="d.severity==='Critical'?'#d46a5a':d.severity==='Major'?'#d4a84a':'#7ba8b8'">{{ d.severity }}</span></td>
               <td class="small">{{ d.description }}</td>
@@ -66,7 +57,7 @@ interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>NCR</th><th>Title</th><th>VIN</th><th>Stage</th><th>Owner</th><th>Due</th></tr></thead>
           <tbody>
-            @for (n of mock.ncrs; track n.id) {
+            @for (n of data.ncrs; track n.id) {
               <tr><td class="mono">{{ n.id }}</td><td class="fw-semibold">{{ n.title }}</td><td class="mono small">{{ n.vin }}</td>
               <td><span class="badge" [style.background]="n.status==='CLOSED'?'rgba(111,191,115,.18)':'rgba(196,112,70,.18)'" [style.color]="n.status==='CLOSED'?'#6fbf73':'#c47046'">{{ n.status }}</span></td>
               <td>{{ n.owner }}</td><td class="mono">{{ n.due }}</td></tr>
@@ -77,7 +68,10 @@ interface SpcPoint { subgroup: number; xbar: number; range: number; outOfControl
       </div>
     }
 
-    @if (tab()==='spc') {
+    @if (tab()==='spc' && spcData.length===0) {
+      <div class="vx-card p-4 text-muted">No measurement records are available. The backend does not have an SPC data API yet.</div>
+    }
+    @if (tab()==='spc' && spcData.length>0) {
       <div class="row g-3">
         <div class="col-md-4">
           <div class="vx-card p-3">
@@ -160,28 +154,10 @@ export class QualityComponent implements OnInit {
 
   spcData: SpcPoint[] = [];
 
-  constructor(public mock: MockDataService) {
-    // Generate 25 deterministic subgroups of n=5 readings
-    const rand = mulberry32(42);
-    const sigma = 2.2;
-    for (let s = 1; s <= 25; s++) {
-      const readings: number[] = [];
-      for (let i = 0; i < this.n; i++) {
-        // Box-Muller for normal distribution; inject a special-cause shift at subgroup 18
-        const meanShift = s >= 18 ? 3.5 : 0;
-        const u1 = rand(), u2 = rand();
-        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-        readings.push(this.target + meanShift + z * sigma);
-      }
-      const xbar = readings.reduce((a, b) => a + b, 0) / this.n;
-      const range = Math.max(...readings) - Math.min(...readings);
-      this.spcData.push({ subgroup: s, xbar, range, outOfControl: false });
-    }
-    // Mark out-of-control after limits are computed (done in computed below via flag)
-  }
+  constructor(public data: AppDataService, private api: BackendApiService) {}
 
-  xbarBar = computed(() => this.spcData.reduce((a, p) => a + p.xbar, 0) / this.spcData.length);
-  rbar = computed(() => this.spcData.reduce((a, p) => a + p.range, 0) / this.spcData.length);
+  xbarBar = computed(() => this.spcData.length ? this.spcData.reduce((a, p) => a + p.xbar, 0) / this.spcData.length : 0);
+  rbar = computed(() => this.spcData.length ? this.spcData.reduce((a, p) => a + p.range, 0) / this.spcData.length : 0);
   uclX = computed(() => this.xbarBar() + this.A2 * this.rbar());
   lclX = computed(() => this.xbarBar() - this.A2 * this.rbar());
   uclR = computed(() => this.D4 * this.rbar());
@@ -207,9 +183,15 @@ export class QualityComponent implements OnInit {
   xbarPolyline = computed(() => this.spcData.map(p => `${this.xPos(p.subgroup)},${this.yX(p.xbar)}`).join(' '));
   rPolyline = computed(() => this.spcData.map(p => `${this.xPos(p.subgroup)},${this.yR(p.range)}`).join(' '));
 
-  // outOfControl flag used in template via direct comparison (template checks p.outOfControl which is always false;
-  // we instead color by computed comparison — but template uses p.outOfControl, so set it here)
   ngOnInit() {
-    this.spcData.forEach(p => { p.outOfControl = p.xbar > this.uclX() || p.xbar < this.lclX(); });
+    this.api.quality.inspections(0, 100).subscribe(res => {
+      this.data.inspections = res.data.content.map((i: any) => ({ id: i.inspectionNumber, part: i.partCode ?? i.vin ?? '—', operation: i.type, result: i.result, inspector: i.inspectorName ?? '—', date: i.inspectedAt ?? i.createdAt }));
+    });
+    this.api.quality.defects(0, 100).subscribe(res => {
+      this.data.defects = res.data.content.map((d: any) => ({ id: d.defectNumber, vin: d.vin ?? '', category: d.partCode ?? '', severity: d.severity, description: d.description, status: d.status }));
+    });
+    this.api.quality.ncrs(0, 100).subscribe(res => {
+      this.data.ncrs = res.data.content.map((n: any) => ({ id: n.ncrNumber, title: n.containment ?? n.ncrNumber, vin: n.vin ?? '—', status: n.status, owner: '—', due: n.closedAt ?? '—' }));
+    });
   }
 }

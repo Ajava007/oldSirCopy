@@ -4,7 +4,9 @@ package com.abc.SpringBootSecqurityEx.service;
 import com.abc.SpringBootSecqurityEx.dtos.MaintenanceDtos;
 import com.abc.SpringBootSecqurityEx.dtos.SalesDtos;
 import com.abc.SpringBootSecqurityEx.entity.SalesOrder;
+import com.abc.SpringBootSecqurityEx.entity.SalesPayment;
 import com.abc.SpringBootSecqurityEx.repository.CustomerRepository;
+import com.abc.SpringBootSecqurityEx.repository.SalesPaymentRepository;
 import com.abc.SpringBootSecqurityEx.repository.SalesOrderRepository;
 import com.abc.SpringBootSecqurityEx.repository.YardSlotRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
@@ -31,12 +34,14 @@ public class SalesOrderService {
     );
 
     private final SalesOrderRepository soRepository;
+    private final SalesPaymentRepository paymentRepository;
     private final CustomerRepository customerRepository;
     private final YardSlotRepository yardSlotRepository;
 
-    public SalesOrderService(SalesOrderRepository soRepository, CustomerRepository customerRepository,
+    public SalesOrderService(SalesOrderRepository soRepository, SalesPaymentRepository paymentRepository, CustomerRepository customerRepository,
                              YardSlotRepository yardSlotRepository) {
         this.soRepository = soRepository;
+        this.paymentRepository = paymentRepository;
         this.customerRepository = customerRepository;
         this.yardSlotRepository = yardSlotRepository;
     }
@@ -118,8 +123,40 @@ public class SalesOrderService {
     public SalesDtos.SalesOrderResponse markPaid(Long id) {
         SalesOrder so = soRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sales order not found: " + id));
-        so.setPaymentStatus("PAID");
-        return toResponse(soRepository.save(so));
+        BigDecimal paid = paymentRepository.totalPaid(id);
+        BigDecimal amount = so.getTotalAmount().subtract(paid);
+        if (amount.signum() <= 0) throw new IllegalStateException("This sales order is already paid.");
+        recordPayment(id, new SalesDtos.PaymentRequest(amount, "MANUAL", "Legacy mark-paid action"));
+        return toResponse(soRepository.findById(id).orElseThrow());
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<SalesDtos.PaymentResponse> paymentHistory(Long orderId) {
+        if (!soRepository.existsById(orderId)) throw new EntityNotFoundException("Sales order not found: " + orderId);
+        return paymentRepository.findBySalesOrderIdOrderByCreatedAtDesc(orderId).stream().map(this::toPaymentResponse).toList();
+    }
+
+    @Transactional
+    public SalesDtos.PaymentResponse recordPayment(Long orderId, SalesDtos.PaymentRequest request) {
+        SalesOrder order = soRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Sales order not found: " + orderId));
+        BigDecimal total = order.getTotalAmount();
+        if (total == null || total.signum() <= 0) throw new IllegalStateException("Enter a positive sales order amount before recording payment.");
+        BigDecimal paid = paymentRepository.totalPaid(orderId);
+        BigDecimal newPaid = paid.add(request.amount());
+        if (newPaid.compareTo(total) > 0) throw new IllegalStateException("Payment exceeds the remaining balance of " + total.subtract(paid) + ".");
+        SalesPayment payment = paymentRepository.save(SalesPayment.builder()
+                .salesOrder(order).amount(request.amount()).method(request.method().trim().toUpperCase())
+                .reference(request.reference()).status("RECORDED").build());
+        order.setPaymentStatus(newPaid.compareTo(total) == 0 ? "PAID" : "PARTIAL");
+        soRepository.save(order);
+        return toPaymentResponse(payment);
+    }
+
+    private SalesDtos.PaymentResponse toPaymentResponse(SalesPayment payment) {
+        return new SalesDtos.PaymentResponse(payment.getId(), payment.getSalesOrder().getId(),
+                payment.getSalesOrder().getSoNumber(), payment.getAmount(), payment.getMethod(),
+                payment.getReference(), payment.getStatus(), payment.getCreatedAt());
     }
 
     private SalesDtos.SalesOrderResponse toResponse(SalesOrder s) {

@@ -1,7 +1,7 @@
 import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { AppDataService } from '../../core/services/app-data.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
@@ -57,12 +57,12 @@ export class AuditLogComponent {
   filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
     const af = this.actionFilter();
-    return this.mock.auditLog.filter(a =>
+    return this.data.auditLog.filter(a =>
       (!af || a.action === af) &&
       (!q || a.user.toLowerCase().includes(q) || a.entity.toLowerCase().includes(q) || a.detail.toLowerCase().includes(q))
     );
   });
   paged = computed(() => this.filtered().slice((this.page() - 1) * this.pageSize, this.page() * this.pageSize));
 
-  constructor(public mock: MockDataService) {}
+  constructor(public data: AppDataService) {}
 }

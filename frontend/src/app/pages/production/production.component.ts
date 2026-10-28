@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { AppDataService } from '../../core/services/app-data.service';
+import { BackendApiService } from '../../core/services/backend-api.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 
 type Tab = 'plans' | 'wos' | 'shopfloor';
@@ -11,7 +12,7 @@ type Tab = 'plans' | 'wos' | 'shopfloor';
   imports: [CommonModule, StatusBadgeComponent],
   template: `
     <h5 class="fw-bold mb-1">Production &amp; MES</h5>
-    <p class="text-muted small mb-3">Production planning, work orders, and shop-floor execution — Phase 4 (static data).</p>
+    <p class="text-muted small mb-3">Plans and work orders load from the backend; available work-order state transitions are provided by its API.</p>
     <ul class="nav nav-pills gap-1 mb-3">
       <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='plans'" (click)="tab.set('plans')" style="color:#e8e5df;">Production Plans</button></li>
       <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='wos'" (click)="tab.set('wos')" style="color:#e8e5df;">Work Orders</button></li>
@@ -23,7 +24,7 @@ type Tab = 'plans' | 'wos' | 'shopfloor';
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>Plan</th><th>Model</th><th class="text-end">Qty</th><th>Line</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
           <tbody>
-            @for (p of mock.productionPlans; track p.id) {
+            @for (p of data.productionPlans; track p.id) {
               <tr><td class="mono">{{ p.id }}</td><td class="fw-semibold">{{ p.model }}</td><td class="text-end mono">{{ p.qty }}</td><td>{{ p.line }}</td><td>{{ p.start }}</td><td>{{ p.end }}</td>
               <td><span class="badge" [style.background]="p.status==='IN_PROGRESS'?'rgba(196,112,70,.18)':'rgba(123,168,184,.18)'" [style.color]="p.status==='IN_PROGRESS'?'#c47046':'#7ba8b8'">{{ p.status }}</span></td></tr>
             }
@@ -37,7 +38,7 @@ type Tab = 'plans' | 'wos' | 'shopfloor';
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>Work Order</th><th>Model</th><th class="text-end">Qty</th><th class="text-end">Done</th><th class="text-end">Rejected</th><th>Line</th><th>Progress</th><th>Status</th></tr></thead>
           <tbody>
-            @for (w of mock.workOrders; track w.id) {
+            @for (w of data.workOrders; track w.id) {
               <tr><td class="mono">{{ w.id }}</td><td class="fw-semibold">{{ w.model }}</td><td class="text-end mono">{{ w.qty }}</td>
               <td class="text-end mono">{{ w.completed }}</td><td class="text-end mono" [style.color]="w.rejected>0?'#d46a5a':'inherit'">{{ w.rejected }}</td><td>{{ w.line }}</td>
               <td style="min-width:120px;"><div style="height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;"><div [style.width.%]="(w.completed/w.qty)*100" style="height:100%;background:linear-gradient(90deg,#c47046,#7ba8b8);"></div></div></td>
@@ -76,8 +77,19 @@ type Tab = 'plans' | 'wos' | 'shopfloor';
 })
 export class ProductionComponent {
   tab = signal<Tab>('plans');
-  constructor(public mock: MockDataService) {}
-  get sf() { return this.mock.shopFloor; }
+  constructor(public data: AppDataService, api: BackendApiService) {
+    api.production.plans(0, 100).subscribe(res => {
+      data.productionPlans = res.data.content.map((p: any) => ({ id: p.planNumber, model: p.modelCode, qty: p.quantity, line: p.lineCode ?? '', start: p.plannedStart, end: p.plannedFinish, status: p.status }));
+      const lineCode = (res.data.content as any[]).find((p: any) => p.lineCode)?.lineCode;
+      if (lineCode) api.production.activeOnLine(lineCode).subscribe(active => {
+        data.shopFloor = { ...data.shopFloor, line: lineCode, workOrder: (active.data[0] as any)?.woNumber ?? 'No active work order' };
+      });
+    });
+    api.production.workOrders(0, 100).subscribe(res => {
+      data.workOrders = res.data.content.map((w: any) => ({ id: w.woNumber, plan: w.planNumber ?? '', model: w.modelCode, qty: w.targetQuantity, completed: w.producedQuantity ?? 0, rejected: w.rejectedQuantity ?? 0, line: w.lineCode ?? '', status: w.status }));
+    });
+  }
+  get sf() { return this.data.shopFloor; }
   woColor(s: string) {
     if (s === 'COMPLETED') return { bg: 'rgba(111,191,115,.18)', fg: '#6fbf73' };
     if (s === 'IN_PROGRESS') return { bg: 'rgba(196,112,70,.18)', fg: '#c47046' };

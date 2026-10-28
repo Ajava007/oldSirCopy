@@ -1,0 +1,43 @@
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AppDataService } from '../../core/services/app-data.service';
+import { BackendApiService } from '../../core/services/backend-api.service';
+
+@Component({
+  selector: 'vx-workforce',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <h5 class="fw-bold mb-1">Workforce</h5>
+    <p class="text-muted small mb-3">Worker details, today's shifts, and certificates that expire soon.</p>
+    <div class="vx-card p-0 overflow-auto">
+      <table class="table vx-table table-hover mb-0">
+        <thead><tr><th>Name</th><th>Role</th><th>Factory</th><th>Shift</th><th>Skill / Certification</th><th>Status</th></tr></thead>
+        <tbody>
+          @for (e of data.employees; track e.id) {
+            <tr><td class="fw-semibold">{{ e.name }}</td><td>{{ e.role }}</td><td class="mono">{{ e.factory }}</td><td>{{ e.shift }}</td><td>{{ e.skill }}</td>
+            <td><span class="badge" [style.background]="e.status==='ACTIVE'?'rgba(111,191,115,.18)':'rgba(212,168,74,.18)'" [style.color]="e.status==='ACTIVE'?'#6fbf73':'#d4a84a'">{{ e.status }}</span></td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <h6 class="fw-bold mt-4">Today's shifts</h6>
+    @if (!shifts().length) { <p class="small text-muted">No shifts are scheduled today.</p> }
+    @for (s of shifts(); track s.id) { <div class="vx-card p-2 mb-2 small"><strong>{{ s.worker }}</strong> · {{ s.shift }} · {{ s.line }} · {{ s.workCenter }}</div> }
+    <h6 class="fw-bold mt-4">Certificates expiring soon</h6>
+    @if (!expiring().length) { <p class="small text-muted">No certificates are close to expiry.</p> }
+    @for (c of expiring(); track c.id) { <div class="vx-card p-2 mb-2 small">Worker {{ c.employeeId }} · {{ c.skillCode }} · Expires {{ c.expiryDate }}</div> }
+  `,
+  styles: ['.mono{font-family:monospace;}']
+})
+export class WorkforceComponent {
+  shifts = signal<any[]>([]);
+  expiring = signal<any[]>([]);
+  constructor(public data: AppDataService, api: BackendApiService) {
+    api.workforce.employees(0, 100).subscribe(res => {
+      data.employees = res.data.content.map((e: any) => ({ id: e.id, name: e.fullName, role: e.department ?? '', factory: e.factoryCode ?? '', shift: 'See shifts below', skill: 'See certificates below', status: e.status }));
+    });
+    api.workforce.shifts(new Date().toISOString().slice(0, 10)).subscribe(res => this.shifts.set(res.data.map((s: any) => ({ ...s, worker: data.employees.find(e => e.id === s.employeeId)?.name ?? `Worker ${s.employeeId}` }))));
+    api.workforce.expiringCertifications().subscribe(res => this.expiring.set(res.data));
+  }
+}

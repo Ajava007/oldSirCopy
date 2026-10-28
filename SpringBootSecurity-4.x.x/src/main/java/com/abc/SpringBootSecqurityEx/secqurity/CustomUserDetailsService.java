@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +41,21 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private Collection<? extends GrantedAuthority> getAuthorities(User user) {
         return user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.name()))
+                .flatMap(role -> Stream.of(
+                        new SimpleGrantedAuthority("ROLE_" + role.name()),
+                        legacyAuthority(role.name())
+                ).filter(authority -> authority != null))
                 .collect(Collectors.toList());
+    }
+
+    private SimpleGrantedAuthority legacyAuthority(String role) {
+        String alias = switch (role) {
+            case "SUPER_ADMIN", "FACTORY_ADMIN" -> "ROLE_ADMIN";
+            case "MANAGER" -> "ROLE_MODERATOR";
+            case "VIEWER" -> "ROLE_USER";
+            case "SUPERVISOR", "OPERATOR", "QUALITY_INSPECTOR" -> "ROLE_EMPLOYEE";
+            default -> null;
+        };
+        return alias == null ? null : new SimpleGrantedAuthority(alias);
     }
 }

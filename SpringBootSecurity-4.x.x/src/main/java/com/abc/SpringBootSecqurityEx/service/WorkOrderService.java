@@ -3,8 +3,12 @@ package com.abc.SpringBootSecqurityEx.service;
 
 import com.abc.SpringBootSecqurityEx.dtos.MaintenanceDtos;
 import com.abc.SpringBootSecqurityEx.dtos.ProductionDtos;
+import com.abc.SpringBootSecqurityEx.entity.BomRow;
+import com.abc.SpringBootSecqurityEx.entity.InventoryItem;
 import com.abc.SpringBootSecqurityEx.entity.WorkOrder;
 import com.abc.SpringBootSecqurityEx.entity.WorkOrderOperation;
+import com.abc.SpringBootSecqurityEx.repository.BomRowRepository;
+import com.abc.SpringBootSecqurityEx.repository.InventoryItemRepository;
 import com.abc.SpringBootSecqurityEx.repository.WorkOrderOperationRepository;
 import com.abc.SpringBootSecqurityEx.repository.WorkOrderRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -14,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,10 +43,15 @@ public class WorkOrderService {
 
     private final WorkOrderRepository woRepository;
     private final WorkOrderOperationRepository opRepository;
+    private final BomRowRepository bomRepository;
+    private final InventoryItemRepository inventoryRepository;
 
-    public WorkOrderService(WorkOrderRepository woRepository, WorkOrderOperationRepository opRepository) {
+    public WorkOrderService(WorkOrderRepository woRepository, WorkOrderOperationRepository opRepository,
+                            BomRowRepository bomRepository, InventoryItemRepository inventoryRepository) {
         this.woRepository = woRepository;
         this.opRepository = opRepository;
+        this.bomRepository = bomRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
     @Transactional(readOnly = true)
@@ -52,10 +64,50 @@ public class WorkOrderService {
         return woRepository.findByLineCodeAndStatus(lineCode, "IN_PROGRESS").stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public ProductionDtos.MaterialCheckResponse checkMaterials(String modelCode, int vehicleQuantity) {
+        if (vehicleQuantity < 1) throw new IllegalArgumentException("Vehicle quantity must be at least one.");
+        Map<String, BigDecimal> requirements = new HashMap<>();
+        expandBom(modelCode, BigDecimal.valueOf(vehicleQuantity), new HashSet<>(), requirements);
+        List<ProductionDtos.MaterialLine> lines = requirements.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    BigDecimal available = inventoryRepository.findByPartCode(entry.getKey()).stream()
+                            .filter(item -> "AVAILABLE".equals(item.getStatus()))
+                            .map(item -> item.getOnHand().subtract(item.getReserved()))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return new ProductionDtos.MaterialLine(entry.getKey(), entry.getValue(), available,
+                            available.compareTo(entry.getValue()) >= 0);
+                }).toList();
+        boolean sufficient = !lines.isEmpty() && lines.stream().allMatch(ProductionDtos.MaterialLine::sufficient);
+        return new ProductionDtos.MaterialCheckResponse(modelCode, vehicleQuantity, sufficient, lines);
+    }
+
+    private void expandBom(String parentCode, BigDecimal multiplier, Set<String> path, Map<String, BigDecimal> requirements) {
+        if (!path.add(parentCode)) throw new IllegalStateException("Circular BOM detected at part " + parentCode);
+        List<BomRow> rows = bomRepository.findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(parentCode);
+        for (BomRow row : rows) {
+            if (row.isOptional()) continue;
+            BigDecimal scrap = row.getScrapFactor() == null ? BigDecimal.ZERO : row.getScrapFactor();
+            BigDecimal required = multiplier.multiply(row.getQuantity()).multiply(BigDecimal.ONE.add(scrap));
+            List<BomRow> children = bomRepository.findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(row.getComponentPartCode());
+            if (children.isEmpty()) {
+                requirements.merge(row.getComponentPartCode(), required, BigDecimal::add);
+            } else {
+                expandBom(row.getComponentPartCode(), required, new HashSet<>(path), requirements);
+            }
+        }
+    }
+
     @Transactional
     public ProductionDtos.WoResponse create(ProductionDtos.WoRequest req) {
         if (woRepository.existsByWoNumber(req.woNumber())) {
             throw new IllegalStateException("Work order number already exists: " + req.woNumber());
+        }
+        ProductionDtos.MaterialCheckResponse materials = checkMaterials(req.modelCode(), req.targetQuantity());
+        if (!materials.sufficient()) {
+            throw new IllegalStateException(materials.materials().isEmpty()
+                    ? "No bill of materials is configured for model " + req.modelCode()
+                    : "Insufficient stock for one or more required parts.");
         }
         WorkOrder wo = WorkOrder.builder()
                 .woNumber(req.woNumber()).planNumber(req.planNumber()).modelCode(req.modelCode())

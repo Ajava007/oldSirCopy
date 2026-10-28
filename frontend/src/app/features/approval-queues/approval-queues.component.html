@@ -1,0 +1,31 @@
+
+    <h5 class="fw-bold mb-1" style="color:#0f172a;">Approval Queues</h5>
+    <p class="mb-3" style="color:#64748b;font-size:.9rem;">Reusable approval framework — POs, ECRs, quality/vehicle releases, maintenance. Approve or reject with confirmation.</p>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      @for (f of filters; track f) {
+        <button class="btn btn-sm" [class.btn-primary]="filter()===f" [class.btn-outline-secondary]="filter()!==f" (click)="filter.set(f)">
+          {{ f }} <span class="badge" [style.background]="badgeBg(f)" [style.color]="badgeFg(f)">{{ countFor(f) }}</span>
+        </button>
+      }
+    </div>
+
+    @if (visible().length === 0) {
+      <div class="vx-card p-5 text-center" style="color:#94a3b8;">No pending approvals in this queue.</div>
+    }
+
+    @for (a of visible(); track a.id) {
+      <div class="vx-card p-3 mb-2 d-flex align-items-start gap-3 flex-wrap">
+        <span class="badge flex-shrink-0" style="background:rgba(37,99,235,.1);color:#2563eb;font-size:.65rem;">{{ a.type }}</span>
+        <div class="flex-grow-1" style="min-width:200px;">
+          <div class="fw-semibold small" style="color:#0f172a;">{{ a.title }}</div>
+          <div class="small" style="color:#64748b;">{{ a.detail }}</div>
+          <div class="small mt-1" style="color:#94a3b8;">Requested by {{ a.requestedBy }} · {{ a.date }} · <vx-status-badge [label]="a.priority" [status]="a.priority" /></div>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0">
+          <button class="btn btn-sm btn-outline-secondary" (click)="reject(a)"><i class="bi bi-x-lg me-1"></i>Reject</button>
+          <button class="btn btn-sm btn-primary" (click)="approve(a)"><i class="bi bi-check-lg me-1"></i>Approve</button>
+        </div>
+      </div>
+    }
+  

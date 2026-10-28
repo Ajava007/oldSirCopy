@@ -1,0 +1,46 @@
+
+    <h5 class="fw-bold mb-1">Reports &amp; Analytics</h5>
+    <p class="text-muted small mb-3">Work order, stock, and report records from the backend.</p>
+
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3"><div class="vx-card p-3"><div class="text-muted small text-uppercase">Vehicles Built</div><div class="display-6 fw-bold" style="color:#c47046;">{{ s.vehiclesBuilt }}</div><div class="small text-muted">YTD</div></div></div>
+      <div class="col-6 col-md-3"><div class="vx-card p-3"><div class="text-muted small text-uppercase">Quality pass rate</div><div class="display-6 fw-bold" style="color:#6fbf73;">{{ s.firstPassYield }}%</div><div class="small text-muted">from inspection records</div></div></div>
+      <div class="col-6 col-md-3"><div class="vx-card p-3"><div class="text-muted small text-uppercase">Open quality issues</div><div class="display-6 fw-bold" style="color:#7ba8b8;">{{ s.openNcrs }}</div><div class="small text-muted">from quality records</div></div></div>
+      <div class="col-6 col-md-3"><div class="vx-card p-3"><div class="text-muted small text-uppercase">Payments Pending</div><div class="display-6 fw-bold" style="color:#d4a84a;">{{ s.pendingPayments.toLocaleString() }}</div><div class="small text-muted">from sales orders</div></div></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <div class="vx-card p-4">
+          <h6 class="fw-bold mb-3">Work Order Status Mix</h6>
+          @for (row of woMix; track row.label) {
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small mb-1"><span>{{ row.label }}</span><span class="mono">{{ row.value }}</span></div>
+              <div style="height:10px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;"><div [style.width.%]="(row.value/totalWO)*100" [style.background]="row.color" style="height:100%;"></div></div>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="vx-card p-3">
+          <h6 class="fw-bold mb-3">Recent reports</h6>
+          @if (data.reports.length === 0) { <p class="small text-muted mb-0">No reports found.</p> }
+          @for (report of data.reports; track report.id) {
+            <div class="d-flex justify-content-between border-bottom py-2 small"><span>{{ report.name }} · {{ report.format }}</span><span>{{ report.generatedBy }} · {{ report.createdAt }}</span></div>
+          }
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="vx-card p-4">
+          <h6 class="fw-bold mb-3">MRP Shortage Exposure</h6>
+          @for (m of shortageParts; track m.partCode) {
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small mb-1"><span class="mono">{{ m.partCode }}</span><span class="mono" style="color:#d46a5a;">short {{ m.shortage }}</span></div>
+              <div style="height:10px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;"><div [style.width.%]="(m.shortage/m.required)*100" style="height:100%;background:linear-gradient(90deg,#d46a5a,#c47046);"></div></div>
+            </div>
+          }
+          <p class="small text-muted mt-3 mb-0">Shortage parts block production release until PO receipts cover the gap.</p>
+        </div>
+      </div>
+    </div>
+  

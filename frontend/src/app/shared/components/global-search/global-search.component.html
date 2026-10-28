@@ -1,0 +1,23 @@
+
+    <div class="position-relative" style="width:240px;max-width:40vw;">
+      <div class="position-relative">
+        <i class="bi bi-search position-absolute" style="left:.7rem;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:.8rem;"></i>
+        <input type="text" class="form-control form-control-sm" style="padding-left:2rem;border-radius:10px;"
+               placeholder="Search VIN, part, WO…" [(ngModel)]="query" (ngModelChange)="onChange()" (blur)="onBlur()" (focus)="open.set(true)">
+      </div>
+      @if (open() && results().length) {
+        <div class="position-absolute bg-white rounded-xl shadow-lg border mt-1 p-2 w-100" style="z-index:1050;max-height:320px;overflow:auto;">
+          @for (r of results(); track r.id) {
+            <button class="d-flex align-items-center gap-2 w-100 text-start px-2 py-1.5 rounded border-0 bg-transparent small"
+                    style="cursor:pointer;" (mousedown)="go(r)">
+              <span class="badge" style="background:#f1f5f9;color:#64748b;font-size:.6rem;">{{ r.kind }}</span>
+              <span class="mono flex-grow-1" style="color:#0f172a;">{{ r.label }}</span>
+            </button>
+          }
+        </div>
+      }
+      @if (open() && query() && !results().length) {
+        <div class="position-absolute bg-white rounded-xl shadow-lg border mt-1 p-3 w-100 text-center small" style="z-index:1050;color:#94a3b8;">No matches for “{{ query() }}”</div>
+      }
+    </div>
+  

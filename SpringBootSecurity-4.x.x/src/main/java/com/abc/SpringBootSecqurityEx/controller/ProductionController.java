@@ -53,6 +53,12 @@ public class ProductionController {
         return ResponseEntity.ok(ApiResponse.ok(woService.findAll(pageable), "Work orders retrieved"));
     }
 
+    @GetMapping("/material-check")
+    public ResponseEntity<ApiResponse<ProductionDtos.MaterialCheckResponse>> checkMaterials(
+            @RequestParam String modelCode, @RequestParam(defaultValue = "1") int quantity) {
+        return ResponseEntity.ok(ApiResponse.ok(woService.checkMaterials(modelCode, quantity), "Material availability checked"));
+    }
+
     @GetMapping("/shop-floor/active")
     public ResponseEntity<ApiResponse<List<ProductionDtos.WoResponse>>> activeOnLine(@RequestParam String lineCode) {
         return ResponseEntity.ok(ApiResponse.ok(woService.activeOnLine(lineCode), "Active work orders on line"));

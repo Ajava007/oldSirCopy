@@ -1,146 +1,93 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService, VinRecord } from '../../core/services/mock-data.service';
-
-type Tab = 'summary' | 'genealogy' | 'release';
+import { BackendApiService } from '../../core/services/backend-api.service';
 
 @Component({
   selector: 'vx-vin-traceability',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <h5 class="fw-bold mb-1" style="color:#0f172a;">VIN Traceability — Digital Thread</h5>
-    <p class="mb-3" style="color:#64748b;font-size:.9rem;">Signature feature: full lifecycle genealogy per VIN. Select a VIN, then explore summary, genealogy, and release gating.</p>
-
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      @for (v of mock.vins; track v.vin) {
-        <button class="btn btn-sm" [class.btn-primary]="selected()?.vin===v.vin" [class.btn-outline-secondary]="selected()?.vin!==v.vin" (click)="selected.set(v)">
-          <span class="mono" style="font-size:.75rem;">{{ v.vin }}</span>
-        </button>
-      }
-    </div>
-
-    @if (selected(); as v) {
-      <div class="vx-card p-4 mb-3">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <div class="mono fw-bold" style="font-size:18px;color:#2563eb;">{{ v.vin }}</div>
-            <div style="color:#64748b;font-size:.85rem;">{{ v.model }} · {{ v.config }} · Built {{ v.buildDate }} · {{ v.line }}</div>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <span class="badge" [style.background]="v.qualityStatus==='RELEASED'?'rgba(5,150,105,.15)':v.qualityStatus==='HOLD'?'rgba(217,119,6,.15)':'rgba(220,38,38,.15)'" [style.color]="v.qualityStatus==='RELEASED'?'#059669':v.qualityStatus==='HOLD'?'#d97706':'#dc2626'">Quality: {{ v.qualityStatus }}</span>
-            <span class="badge" [style.background]="v.paymentStatus==='PAID'?'rgba(5,150,105,.15)':'rgba(217,119,6,.15)'" [style.color]="v.paymentStatus==='PAID'?'#059669':'#d97706'">Payment: {{ v.paymentStatus }}</span>
-            <span class="badge" style="background:rgba(37,99,235,.1);color:#2563eb;">WO {{ v.workOrder }}</span>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-          @for (step of thread(v); track step.label; let last = $last) {
-            <div class="px-2 py-1 rounded small" [style.background]="step.done ? 'rgba(37,99,235,.08)' : '#f8fafc'" [style.border]="step.done ? '1px solid #2563eb' : '1px solid #e2e8f0'" [style.color]="step.done ? '#1e40af' : '#94a3b8'">{{ step.label }}</div>
-            @if (!last) { <span style="color:#2563eb;">→</span> }
-          }
-        </div>
-      </div>
-
-      <ul class="nav nav-pills gap-1 mb-3">
-        <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='summary'" (click)="tab.set('summary')">Summary</button></li>
-        <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='genealogy'" (click)="tab.set('genealogy')">Genealogy Timeline</button></li>
-        <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='release'" (click)="tab.set('release')">Release Checklist</button></li>
-      </ul>
-
-      @if (tab()==='summary') {
-        <div class="row g-2">
-          <div class="col-12 col-md-6"><div class="vx-card p-3"><table class="table table-sm mb-0" style="font-size:.85rem;">
-            <tbody>
-              <tr><td style="color:#64748b;">Engine Serial</td><td class="mono">{{ v.engineSerial }}</td></tr>
-              <tr><td style="color:#64748b;">Battery Serial</td><td class="mono">{{ v.batterySerial }}</td></tr>
-              <tr><td style="color:#64748b;">Sales Order</td><td class="mono">{{ v.salesOrder }}</td></tr>
-              <tr><td style="color:#64748b;">Open defects</td><td class="mono">{{ defectsFor(v.vin) }}</td></tr>
-            </tbody>
-          </table></div></div>
-          <div class="col-12 col-md-6"><div class="vx-card p-3"><table class="table table-sm mb-0" style="font-size:.85rem;">
-            <tbody>
-              <tr><td style="color:#64748b;">Material lots</td><td class="mono">{{ gen().lots.length }}</td></tr>
-              <tr><td style="color:#64748b;">Operators</td><td class="mono">{{ gen().operators.length }}</td></tr>
-              <tr><td style="color:#64748b;">Machines used</td><td class="mono">{{ gen().machineHistory.length }}</td></tr>
-              <tr><td style="color:#64748b;">Inspections</td><td class="mono">{{ gen().inspectionHistory.length }}</td></tr>
-              <tr><td style="color:#64748b;">Rework records</td><td class="mono">{{ gen().reworkHistory.length }}</td></tr>
-            </tbody>
-          </table></div></div>
-        </div>
-      }
-
-      @if (tab()==='genealogy') {
-        <div class="vx-card p-4">
-          <h6 class="fw-bold mb-3" style="color:#0f172a;">Material lots (supplier traceability)</h6>
-          <table class="table table-sm mb-4" style="font-size:.85rem;">
-            <thead><tr><th>Part</th><th>Lot</th><th>Supplier</th></tr></thead>
-            <tbody>@for (l of gen().lots; track l.lot) { <tr><td class="mono">{{ l.part }}</td><td class="mono">{{ l.lot }}</td><td>{{ l.supplier }}</td></tr> }</tbody>
-          </table>
-          <h6 class="fw-bold mb-3" style="color:#0f172a;">Operations — operators &amp; machines</h6>
-          <div class="row g-2 mb-4">
-            <div class="col-md-6"><div class="p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;"><div class="small text-uppercase mb-2" style="color:#64748b;font-size:.7rem;font-weight:700;">Operators</div>
-              @for (o of gen().operators; track o.op) { <div class="small mb-1"><strong>{{ o.op }}</strong> — {{ o.name }}</div> }</div></div>
-            <div class="col-md-6"><div class="p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;"><div class="small text-uppercase mb-2" style="color:#64748b;font-size:.7rem;font-weight:700;">Machine history</div>
-              @for (m of gen().machineHistory; track m.machine) { <div class="small mb-1"><strong class="mono">{{ m.machine }}</strong> — {{ m.operation }}</div> }</div></div>
-          </div>
-          <h6 class="fw-bold mb-3" style="color:#0f172a;">Inspection history</h6>
-          <table class="table table-sm mb-4" style="font-size:.85rem;">
-            <thead><tr><th>Inspection</th><th>Result</th><th>Inspector</th></tr></thead>
-            <tbody>@for (i of gen().inspectionHistory; track i.id) { <tr><td class="mono">{{ i.id }}</td><td>{{ i.result }}</td><td>{{ i.inspector }}</td></tr> }</tbody>
-          </table>
-          @if (gen().reworkHistory.length) {
-            <h6 class="fw-bold mb-3" style="color:#0f172a;">Rework history</h6>
-            @for (r of gen().reworkHistory; track r.defect) { <div class="small p-2 rounded mb-1" style="background:rgba(217,119,6,.08);border-left:3px solid #d97706;"><strong>{{ r.defect }}</strong> — {{ r.action }} ({{ r.date }})</div> }
-          }
-        </div>
-      }
-
-      @if (tab()==='release') {
-        <div class="vx-card p-4">
-          <h6 class="fw-bold mb-3" style="color:#0f172a;">Quality release checklist — gates dispatch</h6>
-          @for (c of gen().releaseChecklist; track c.label) {
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span [style.background]="c.passed ? '#059669' : '#dc2626'" class="d-inline-flex align-items-center justify-content-center rounded-circle text-white" style="width:22px;height:22px;font-size:.75rem;">{{ c.passed ? '✓' : '✕' }}</span>
-              <span class="small" [style.color]="c.passed ? '#0f172a' : '#dc2626'">{{ c.label }}</span>
-            </div>
-          }
-          <div class="mt-4 p-3 rounded" [style.background]="releasable() ? 'rgba(5,150,105,.08)' : 'rgba(220,38,38,.06)'" [style.border]="'1px solid ' + (releasable() ? '#059669' : '#dc2626')">
-            @if (releasable()) {
-              <p class="mb-2 small" style="color:#059669;"><strong>All gates passed.</strong> Vehicle is eligible for quality release and dispatch.</p>
-              <button class="btn btn-primary btn-sm">Release vehicle for dispatch</button>
-            } @else {
-              <p class="mb-0 small" style="color:#dc2626;"><strong>Cannot release.</strong> {{ failedCount() }} gate(s) open. A failed vehicle cannot be dispatched until resolved.</p>
-            }
-          </div>
-        </div>
-      }
+    <h5 class="fw-bold mb-1">Vehicle History</h5>
+    <p class="text-muted small mb-3">Choose a vehicle from a sales order to see its quality checks and release status.</p>
+    @if (loading()) { <p class="small text-muted">Loading vehicles…</p> }
+    @if (error()) { <div class="alert alert-warning">{{ error() }}</div> }
+    @if (!loading() && vehicles().length === 0) {
+      <div class="vx-card p-3"><h6>No vehicles with a VIN</h6><p class="small text-muted mb-0">Sales orders do not have vehicle identification numbers yet.</p></div>
     }
-  `,
-  styles: ['.mono{font-family:ui-monospace,monospace;}']
+    @if (vehicles().length) {
+      <div class="vx-card p-3 mb-3">
+        <label for="vehicle" class="form-label small fw-semibold">Vehicle identification number (VIN)</label>
+        <select id="vehicle" class="form-select" [value]="selectedVin()" (change)="select(($any($event.target)).value)">
+          @for (vehicle of vehicles(); track vehicle.vin) { <option [value]="vehicle.vin">{{ vehicle.vin }} · {{ vehicle.model }} · Order {{ vehicle.order }}</option> }
+        </select>
+      </div>
+    }
+    @if (selectedVin()) {
+      <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-primary btn-sm" (click)="loadHistory()">Refresh history</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="downloadReport()" [disabled]="reportLoading()">Download vehicle report</button>
+      </div>
+      @if (gate(); as check) {
+        <div class="vx-card p-3 mb-3">
+          <h6 class="fw-bold">Can this vehicle leave the factory?</h6>
+          <span class="badge" [class.text-bg-success]="check.passed" [class.text-bg-danger]="!check.passed">{{ check.passed ? 'Ready' : 'Needs attention' }}</span>
+          @if (check.reasons?.length) { <ul class="small mt-2 mb-0">@for (reason of check.reasons; track reason) { <li>{{ reason }}</li> }</ul> }
+        </div>
+      }
+      <div class="vx-card p-0 overflow-auto">
+        <h6 class="fw-bold p-3 mb-0">Quality checks</h6>
+        @if (!inspections().length) { <p class="small text-muted px-3 pb-3">No quality checks have been recorded for this vehicle.</p> }
+        @if (inspections().length) {
+          <table class="table table-hover mb-0"><thead><tr><th>Check</th><th>Type</th><th>Result</th><th>Inspector</th><th>Date</th></tr></thead>
+            <tbody>@for (item of inspections(); track item.inspectionNumber ?? item.id) { <tr><td>{{ item.inspectionNumber ?? item.id }}</td><td>{{ item.type }}</td><td>{{ item.result }}</td><td>{{ item.inspectorName ?? '—' }}</td><td>{{ item.inspectedAt ?? item.createdAt ?? '—' }}</td></tr> }</tbody>
+          </table>
+        }
+      </div>
+    }
+  `
 })
 export class VinTraceabilityComponent {
-  selected = signal<VinRecord | null>(null);
-  tab = signal<Tab>('summary');
+  vehicles = signal<any[]>([]);
+  selectedVin = signal('');
+  inspections = signal<any[]>([]);
+  gate = signal<any | null>(null);
+  loading = signal(true);
+  reportLoading = signal(false);
+  error = signal('');
 
-  constructor(public mock: MockDataService) {
-    if (this.mock.vins.length) this.selected.set(this.mock.vins[0]);
+  constructor(private api: BackendApiService) {
+    this.api.sales.orders(0, 100).subscribe({
+      next: response => {
+        this.vehicles.set(response.data.content.filter((order: any) => order.vin).map((order: any) => ({ vin: order.vin, model: order.modelCode ?? 'Vehicle', order: order.soNumber ?? order.id })));
+        this.loading.set(false);
+        if (this.vehicles().length) this.select(this.vehicles()[0].vin);
+      },
+      error: () => { this.error.set('Could not load sales orders. Check the backend connection.'); this.loading.set(false); }
+    });
   }
 
-  gen = computed(() => this.mock.vinGenealogy(this.selected()?.vin ?? ''));
-  releasable = computed(() => this.gen().releaseChecklist.every(c => c.passed));
-  failedCount = computed(() => this.gen().releaseChecklist.filter(c => !c.passed).length);
+  select(vin: string) { this.selectedVin.set(vin); this.loadHistory(); }
 
-  thread(v: VinRecord) {
-    return [
-      { label: 'Engineering Rev', done: true }, { label: 'BOM/Routing', done: true },
-      { label: 'Production Plan', done: true }, { label: v.workOrder, done: true },
-      { label: 'Operations', done: true }, { label: 'Quality ' + v.qualityStatus, done: v.qualityStatus === 'RELEASED' },
-      { label: 'VIN Assigned', done: true }, { label: v.salesOrder, done: true },
-      { label: 'Payment ' + v.paymentStatus, done: v.paymentStatus === 'PAID' },
-      { label: 'Delivery', done: v.paymentStatus === 'PAID' && v.qualityStatus === 'RELEASED' }
-    ];
+  loadHistory() {
+    const vin = this.selectedVin();
+    if (!vin) return;
+    this.gate.set(null);
+    this.inspections.set([]);
+    this.api.quality.gateCheck(vin).subscribe({ next: response => this.gate.set(response.data), error: () => this.error.set('Could not load the factory release check.') });
+    this.api.quality.inspectionsByVin(vin).subscribe({ next: response => this.inspections.set(response.data), error: () => this.error.set('Could not load quality checks.') });
   }
-  defectsFor(vin: string) {
-    return this.mock.defects.filter(d => d.vin === vin && (d.status === 'OPEN' || d.status === 'IN_NCR')).length;
+
+  downloadReport() {
+    const vin = this.selectedVin();
+    if (!vin) return;
+    this.reportLoading.set(true);
+    this.api.reports.vinGenealogy(vin).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = `${vin}-vehicle-report.pdf`; link.click(); URL.revokeObjectURL(url);
+        this.reportLoading.set(false);
+      },
+      error: () => { this.error.set('Could not create the vehicle report.'); this.reportLoading.set(false); }
+    });
   }
 }

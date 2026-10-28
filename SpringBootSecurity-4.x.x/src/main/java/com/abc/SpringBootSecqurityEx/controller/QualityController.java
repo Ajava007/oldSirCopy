@@ -44,6 +44,13 @@ public class QualityController {
         return ResponseEntity.ok(ApiResponse.ok(inspectionService.findByVin(vin), "Inspections for VIN"));
     }
 
+    @GetMapping("/defects")
+    public ResponseEntity<ApiResponse<Page<QualityDtos.DefectResponse>>> defects(
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return ResponseEntity.ok(ApiResponse.ok(inspectionService.findDefects(pageable), "Defects retrieved"));
+    }
+
     @PostMapping("/inspections")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','QUALITY_INSPECTOR')")
     public ResponseEntity<ApiResponse<QualityDtos.InspectionResponse>> record(@Valid @RequestBody QualityDtos.InspectionRequest request) {

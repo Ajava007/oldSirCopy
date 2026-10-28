@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService } from '../../core/services/mock-data.service';
+import { AppDataService } from '../../core/services/app-data.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 
 type Tab = 'incidents' | 'ppe' | 'training';
@@ -31,7 +31,7 @@ type Tab = 'incidents' | 'ppe' | 'training';
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>ID</th><th>Date</th><th>Type</th><th>Severity</th><th>Location</th><th>Description</th><th>Status</th><th>Reported by</th></tr></thead>
           <tbody>
-            @for (i of mock.safetyIncidents; track i.id) {
+            @for (i of data.safetyIncidents; track i.id) {
               <tr><td class="mono">{{ i.id }}</td><td class="mono">{{ i.date }}</td><td>{{ i.type }}</td>
               <td><vx-status-badge [label]="i.severity" [status]="i.severity" /></td>
               <td>{{ i.location }}</td><td class="small">{{ i.description }}</td>
@@ -47,7 +47,7 @@ type Tab = 'incidents' | 'ppe' | 'training';
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>Area</th><th>Required PPE</th><th class="text-end">Compliance</th><th>Last check</th></tr></thead>
           <tbody>
-            @for (p of mock.ppeChecks; track p.id) {
+            @for (p of data.ppeChecks; track p.id) {
               <tr><td class="fw-semibold">{{ p.area }}</td><td class="small">{{ p.required }}</td>
               <td class="text-end"><strong [style.color]="p.compliance>=95?'#059669':p.compliance>=90?'#d97706':'#dc2626'">{{ p.compliance }}%</strong></td>
               <td class="mono">{{ p.lastCheck }}</td></tr>
@@ -62,7 +62,7 @@ type Tab = 'incidents' | 'ppe' | 'training';
         <table class="table vx-table table-hover mb-0">
           <thead><tr><th>Employee</th><th>Course</th><th>Expiry</th><th>Status</th></tr></thead>
           <tbody>
-            @for (t of mock.safetyTraining; track t.id) {
+            @for (t of data.safetyTraining; track t.id) {
               <tr><td class="fw-semibold">{{ t.employee }}</td><td>{{ t.course }}</td><td class="mono">{{ t.expiry }}</td>
               <td><vx-status-badge [label]="t.status" [status]="t.status" /></td></tr>
             }
@@ -75,5 +75,5 @@ type Tab = 'incidents' | 'ppe' | 'training';
 })
 export class SafetyComponent {
   tab = signal<Tab>('incidents');
-  constructor(public mock: MockDataService) {}
+  constructor(public data: AppDataService) {}
 }

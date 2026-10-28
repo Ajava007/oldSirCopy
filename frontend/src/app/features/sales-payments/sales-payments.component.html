@@ -1,0 +1,44 @@
+
+    <h5 class="fw-bold mb-1">Sales &amp; Payments</h5>
+    <p class="text-muted small mb-3">Sales orders, customers, and dealers load from the backend. Use the guided workflow to add customers and record payments.</p>
+    <ul class="nav nav-pills gap-1 mb-3">
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='orders'" (click)="tab.set('orders')" style="color:#e8e5df;">Sales Orders</button></li>
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='customers'" (click)="tab.set('customers')" style="color:#e8e5df;">Customers</button></li>
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='dealers'" (click)="tab.set('dealers')" style="color:#e8e5df;">Dealers</button></li>
+      <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()==='payments'" (click)="tab.set('payments')" style="color:#e8e5df;">Payments &amp; Receipts</button></li>
+    </ul>
+
+    @if (tab()==='orders') {
+      <div class="vx-card p-0 overflow-auto">
+        <table class="table vx-table table-hover mb-0">
+          <thead><tr><th>Order</th><th>Customer / Dealer</th><th>Model</th><th class="text-end">Qty</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (o of data.salesOrders; track o.id) {
+              <tr><td class="mono">{{ o.id }}</td><td class="fw-semibold">{{ o.customer }}</td><td>{{ o.model }}</td><td class="text-end mono">{{ o.qty }}</td>
+              <td class="text-end mono">{{ o.amount.toLocaleString() }}</td>
+              <td><span class="badge text-bg-secondary">{{ o.status }}</span></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (tab()==='customers') {
+      <div class="vx-card p-0 overflow-auto"><table class="table vx-table table-hover mb-0"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Address</th></tr></thead><tbody>
+        @for (c of data.customers; track c.id) { <tr><td class="fw-semibold">{{ c.name }}</td><td>{{ c.email }}</td><td>{{ c.phone }}</td><td>{{ c.address }}</td></tr> }
+      </tbody></table></div>
+    }
+    @if (tab()==='dealers') {
+      <div class="vx-card p-0 overflow-auto"><table class="table vx-table table-hover mb-0"><thead><tr><th>Code</th><th>Name</th><th>City</th><th>Email</th><th>Status</th></tr></thead><tbody>
+        @for (d of data.dealers; track d.id) { <tr><td>{{ d.code }}</td><td class="fw-semibold">{{ d.name }}</td><td>{{ d.city }}</td><td>{{ d.email }}</td><td>{{ d.status }}</td></tr> }
+      </tbody></table></div>
+    }
+
+    @if (tab()==='payments') {
+      <div class="vx-card p-3">
+        <h6 class="fw-bold">Record and review customer payments</h6>
+        <p class="small text-muted">The payment ledger is attached to each customer sales order in the guided workflow.</p>
+        <a class="btn btn-primary btn-sm" routerLink="/workflow">Open Buy → Build → Sell</a>
+      </div>
+    }
+  

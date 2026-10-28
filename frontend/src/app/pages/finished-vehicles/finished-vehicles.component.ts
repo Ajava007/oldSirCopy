@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockDataService, YardSlot } from '../../core/services/mock-data.service';
+import { AppDataService, YardSlot } from '../../core/services/app-data.service';
+import { BackendApiService } from '../../core/services/backend-api.service';
 
 @Component({
   selector: 'vx-finished-vehicles',
@@ -68,7 +69,7 @@ import { MockDataService, YardSlot } from '../../core/services/mock-data.service
       <table class="table vx-table table-hover mb-0">
         <thead><tr><th>Slot</th><th>VIN</th><th>Model</th><th>Quality</th><th>Release</th><th>Sales</th><th>Allocation</th></tr></thead>
         <tbody>
-          @for (s of mock.yardSlots; track s.id) {
+          @for (s of data.yardSlots; track s.id) {
             <tr [style.cursor]="'pointer'" (click)="selectedSlot.set(s)">
               <td class="mono fw-bold">{{ s.id }}</td>
               <td class="mono">{{ s.vin ?? '—' }}</td><td>{{ s.model }}</td>
@@ -84,9 +85,23 @@ import { MockDataService, YardSlot } from '../../core/services/mock-data.service
 })
 export class FinishedVehiclesComponent {
   selectedSlot = signal<YardSlot | null>(null);
-  constructor(public mock: MockDataService) {}
-  rows() { return [...new Set(this.mock.yardSlots.map(s => s.row))]; }
-  slotsByRow(r: string) { return this.mock.yardSlots.filter(s => s.row === r); }
+  constructor(public data: AppDataService, api: BackendApiService) {
+    api.sales.yardMap().subscribe(res => {
+      data.yardSlots = res.data.map((slot: any) => ({
+        id: `${slot.rowCode}-${slot.slotNumber}`,
+        row: slot.rowCode,
+        position: slot.slotNumber,
+        vin: slot.vin ?? null,
+        model: '—',
+        qualityStatus: slot.status,
+        releaseStatus: slot.status,
+        salesStatus: '—',
+        allocationStatus: slot.vin ? 'ALLOCATED' : 'AVAILABLE'
+      }));
+    });
+  }
+  rows() { return [...new Set(this.data.yardSlots.map(s => s.row))]; }
+  slotsByRow(r: string) { return this.data.yardSlots.filter(s => s.row === r); }
   slotBg(s: YardSlot) { return s.vin ? this.slotColor(s).bg : '#f8fafc'; }
   slotBorder(s: YardSlot) { return s.vin ? this.slotColor(s).border : '#e2e8f0'; }
   slotTextColor(s: YardSlot) { return s.vin ? '#ffffff' : '#94a3b8'; }

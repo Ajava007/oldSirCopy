@@ -1,0 +1,90 @@
+<section class="dashboard-page">
+  <div class="dashboard-heading">
+    <div>
+      <div class="dashboard-kicker"><span class="signal-dot"></span> FACTORY CONTROL ROOM</div>
+      <h2>Good work starts with a clear view.</h2>
+      <p>Production, quality, inventory and delivery records for {{ auth.currentUser()?.fullName || 'your team' }}.</p>
+    </div>
+    <div class="sync-control">
+      <div class="sync-time"><span class="sync-dot" [class.sync-dot--working]="loading()"></span><span>{{ loading() ? 'Updating records' : lastUpdated() ? 'Updated ' + (lastUpdated() | date:'shortTime') : 'Waiting for backend data' }}</span></div>
+      <button type="button" class="btn btn-outline-secondary" (click)="refresh()" [disabled]="loading()"><i class="bi" [class.bi-arrow-clockwise]="!loading()" [class.bi-arrow-repeat]="loading()" [class.spin]="loading()"></i> Refresh</button>
+    </div>
+  </div>
+
+  @if (partial()) {
+    <div class="data-notice" role="status"><i class="bi bi-info-circle"></i><span>Some data sources did not respond. Values from the last successful response are retained.</span></div>
+  }
+
+  <section class="metric-grid" aria-label="Factory metrics">
+    <article class="metric-card metric-card--production">
+      <div class="metric-top"><span>UNITS PRODUCED</span><i class="bi bi-car-front-fill"></i></div>
+      <div class="metric-value">{{ ready.production() ? (unitsProduced | number) : '—' }}</div>
+      <div class="metric-foot">Reported completed quantity · work orders</div>
+    </article>
+    <article class="metric-card">
+      <div class="metric-top"><span>ACTIVE WORK ORDERS</span><i class="bi bi-gear-wide-connected"></i></div>
+      <div class="metric-value">{{ ready.production() ? (activeWorkOrders | number) : '—' }}</div>
+      <div class="metric-foot">Orders not completed or cancelled</div>
+    </article>
+    <article class="metric-card metric-card--quality">
+      <div class="metric-top"><span>OPEN NCRs</span><i class="bi bi-shield-exclamation"></i></div>
+      <div class="metric-value">{{ ready.quality() ? (openNcrs | number) : '—' }}</div>
+      <div class="metric-foot">Nonconformance records requiring action</div>
+    </article>
+    <article class="metric-card">
+      <div class="metric-top"><span>STOCK RECORDS</span><i class="bi bi-box-seam"></i></div>
+      <div class="metric-value">{{ ready.inventory() ? (data.stock.length | number) : '—' }}</div>
+      <div class="metric-foot">Stock rows loaded from the current API page</div>
+    </article>
+  </section>
+
+  <section class="build-route panel-card">
+    <div class="panel-heading">
+      <div><div class="section-kicker">REFERENCE PROCESS</div><h3>Vehicle build sequence</h3><p>Typical automotive flow from raw material to validated vehicle.</p></div>
+      <span class="reference-tag"><i class="bi bi-diagram-3"></i> Process map</span>
+    </div>
+    <div class="route-track">
+      @for (stage of buildStages; track stage.name; let i = $index) {
+        <div class="route-stage"><span class="route-stage__icon"><i [class]="'bi ' + stage.icon"></i></span><span class="route-stage__index">0{{ i + 1 }}</span><strong>{{ stage.name }}</strong></div>
+      }
+    </div>
+    <div class="route-footnote"><i class="bi bi-info-circle"></i> Station states, takt time and machine telemetry are not available from the current backend.</div>
+  </section>
+
+  <section class="dashboard-lower">
+    <div class="panel-card work-panel">
+      <div class="panel-heading panel-heading--compact">
+        <div><div class="section-kicker">PRODUCTION</div><h3>Recent work orders</h3></div>
+        <a routerLink="/production" class="text-link">View production <i class="bi bi-arrow-up-right"></i></a>
+      </div>
+      @if (!ready.production()) {
+        <div class="empty-state"><span class="empty-state__icon"><i class="bi bi-cloud-slash"></i></span><strong>Production data unavailable</strong><span>The backend has not returned work orders yet.</span></div>
+      } @else if (!data.workOrders.length) {
+        <div class="empty-state"><span class="empty-state__icon"><i class="bi bi-clipboard2-check"></i></span><strong>No work orders recorded</strong><span>Create an assembly order to start tracking production.</span><a routerLink="/workflow" class="btn btn-sm btn-outline-primary">Open build workflow</a></div>
+      } @else {
+        <div class="table-responsive"><table class="table vx-table"><thead><tr><th>Work order</th><th>Vehicle model</th><th>Line</th><th>Completed</th><th>State</th></tr></thead><tbody>
+          @for (order of data.workOrders.slice(0, 7); track order.id) {
+            <tr><td class="mono fw-semibold">{{ order.id }}</td><td>{{ order.model }}</td><td>{{ order.line || '—' }}</td><td class="mono">{{ order.completed | number }} / {{ order.qty | number }}</td><td><span class="state-pill">{{ order.status }}</span></td></tr>
+          }
+        </tbody></table></div>
+      }
+    </div>
+
+    <aside class="insight-column">
+      <article class="insight-card quality-insight">
+        <div class="insight-card__top"><span class="insight-icon"><i class="bi bi-check2-circle"></i></span><span class="section-kicker">QUALITY SIGNAL</span><a routerLink="/quality" aria-label="Open quality"><i class="bi bi-arrow-up-right"></i></a></div>
+        <div class="insight-number">{{ ready.quality() && inspectionPassRate !== null ? inspectionPassRate + '%' : '—' }}</div>
+        <h3>Inspection pass rate</h3>
+        <p>Calculated from returned inspection records. This is not a vehicle-level first-pass yield.</p>
+        <div class="insight-divider"></div>
+        <div class="insight-summary"><span>Open NCRs</span><strong>{{ ready.quality() ? openNcrs : '—' }}</strong></div>
+      </article>
+      <article class="next-actions panel-card">
+        <div class="section-kicker">QUICK ACCESS</div><h3>Move work forward</h3>
+        <a routerLink="/workflow"><span class="quick-icon quick-icon--teal"><i class="bi bi-bezier2"></i></span><span><strong>Buy, build &amp; sell</strong><small>Run the connected factory workflow</small></span><i class="bi bi-chevron-right"></i></a>
+        <a routerLink="/inventory"><span class="quick-icon quick-icon--copper"><i class="bi bi-box-seam"></i></span><span><strong>Check material availability</strong><small>Review on-hand and reserved stock</small></span><i class="bi bi-chevron-right"></i></a>
+        <a routerLink="/maintenance"><span class="quick-icon quick-icon--blue"><i class="bi bi-wrench-adjustable"></i></span><span><strong>Review plant assets</strong><small>Open the maintenance workspace</small></span><i class="bi bi-chevron-right"></i></a>
+      </article>
+    </aside>
+  </section>
+</section>

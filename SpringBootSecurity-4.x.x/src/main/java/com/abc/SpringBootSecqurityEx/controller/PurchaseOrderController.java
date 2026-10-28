@@ -54,6 +54,13 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(ApiResponse.ok(service.transition(id, request), "Status transitioned"));
     }
 
+    @PostMapping("/{id}/receive")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER')")
+    public ResponseEntity<ApiResponse<SupplyChainDtos.PurchaseOrderResponse>> receive(
+            @PathVariable Long id, @Valid @RequestBody SupplyChainDtos.ReceiveRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(service.receive(id, request), "Purchase order received into inventory"));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {

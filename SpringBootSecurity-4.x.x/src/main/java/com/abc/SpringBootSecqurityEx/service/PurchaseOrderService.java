@@ -2,6 +2,7 @@ package com.abc.SpringBootSecqurityEx.service;
 
 
 import com.abc.SpringBootSecqurityEx.dtos.SupplyChainDtos;
+import com.abc.SpringBootSecqurityEx.dtos.InventoryDtos;
 import com.abc.SpringBootSecqurityEx.entity.PurchaseOrder;
 import com.abc.SpringBootSecqurityEx.entity.PurchaseOrderItem;
 import com.abc.SpringBootSecqurityEx.repository.PurchaseOrderRepository;
@@ -31,8 +32,12 @@ public class PurchaseOrderService {
     );
 
     private final PurchaseOrderRepository repository;
+    private final InventoryService inventoryService;
 
-    public PurchaseOrderService(PurchaseOrderRepository repository) { this.repository = repository; }
+    public PurchaseOrderService(PurchaseOrderRepository repository, InventoryService inventoryService) {
+        this.repository = repository;
+        this.inventoryService = inventoryService;
+    }
 
     @Transactional(readOnly = true)
     public Page<SupplyChainDtos.PurchaseOrderResponse> findAll(Pageable pageable) {
@@ -80,6 +85,9 @@ public class PurchaseOrderService {
     public SupplyChainDtos.PurchaseOrderResponse transition(Long id, SupplyChainDtos.StatusTransitionRequest req) {
         PurchaseOrder po = getOrThrow(id);
         String target = req.targetStatus().toUpperCase();
+        if ("RECEIVED".equals(target)) {
+            throw new IllegalStateException("Use the receive action so inventory is updated with the purchase order.");
+        }
         Set<String> allowed = ALLOWED_TRANSITIONS.getOrDefault(po.getStatus(), Set.of());
         if (!allowed.contains(target)) {
             throw new IllegalStateException("Invalid status transition: " + po.getStatus() + " → " + target
@@ -87,6 +95,24 @@ public class PurchaseOrderService {
         }
         po.setStatus(target);
         if ("APPROVED".equals(target)) po.setApprovedBy(req.actor());
+        return toResponse(repository.save(po));
+    }
+
+    @Transactional
+    public SupplyChainDtos.PurchaseOrderResponse receive(Long id, SupplyChainDtos.ReceiveRequest request) {
+        PurchaseOrder po = getOrThrow(id);
+        if (!"ISSUED".equals(po.getStatus())) {
+            throw new IllegalStateException("Only ISSUED purchase orders can be received. Current: " + po.getStatus());
+        }
+        for (PurchaseOrderItem item : po.getItems()) {
+            if (item.getPartCode() == null || item.getPartCode().isBlank()) {
+                throw new IllegalStateException("Purchase order item is missing a part code.");
+            }
+            inventoryService.adjust(new InventoryDtos.StockAdjustRequest(
+                    item.getPartCode(), request.warehouse(), null, BigDecimal.valueOf(item.getQuantity()),
+                    "RECEIPT", "PO", po.getPoNumber(), request.remark()));
+        }
+        po.setStatus("RECEIVED");
         return toResponse(repository.save(po));
     }
 

@@ -62,6 +62,18 @@ public class SalesController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.markPaid(id), "Payment marked PAID"));
     }
 
+    @GetMapping("/orders/{id}/payments")
+    public ResponseEntity<ApiResponse<List<SalesDtos.PaymentResponse>>> paymentHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.paymentHistory(id), "Payment history retrieved"));
+    }
+
+    @PostMapping("/orders/{id}/payments")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','SALES_MANAGER')")
+    public ResponseEntity<ApiResponse<SalesDtos.PaymentResponse>> recordPayment(
+            @PathVariable Long id, @Valid @RequestBody SalesDtos.PaymentRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.recordPayment(id, request), "Payment recorded"));
+    }
+
     @GetMapping("/customers")
     public ResponseEntity<ApiResponse<Page<SalesDtos.CustomerResponse>>> customers(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
