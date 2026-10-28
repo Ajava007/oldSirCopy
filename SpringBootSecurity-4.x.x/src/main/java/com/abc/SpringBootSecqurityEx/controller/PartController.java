@@ -43,7 +43,7 @@ public class PartController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER')")
-    public ResponseEntity<ApiResponse<EngineeringDtos.PartResponse>> update(@PathVariable Long id, @Valid @RequestBody PartRequest request) {
+    public ResponseEntity<ApiResponse<EngineeringDtos.PartResponse>> update(@PathVariable Long id, @Valid @RequestBody EngineeringDtos.PartRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(service.update(id, request), "Part updated"));
     }
 

@@ -41,7 +41,7 @@ public class ProductController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+//    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO request) {
         ProductDTO created = productService.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -52,7 +52,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+//    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     public ResponseEntity<ProductDTO> updateProduct(
             @PathVariable Long id,
             @Valid @RequestBody ProductDTO request) {
@@ -62,7 +62,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+//    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         return productService.delete(id)
                 ? ResponseEntity.noContent().build()
@@ -70,7 +70,7 @@ public class ProductController {
     }
 
     @GetMapping("/premium")
-    @PreAuthorize("hasRole('PREMIUM_USER')")
+//    @PreAuthorize("hasRole('PREMIUM_USER')")
     public ResponseEntity<List<ProductDTO>> getPremiumProducts() {
         return ResponseEntity.ok(productService.findActivePremiumProducts());
     }

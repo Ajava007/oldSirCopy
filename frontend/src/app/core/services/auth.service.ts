@@ -18,12 +18,12 @@ const STATIC_USERS = [
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private base = `${environment.apiBaseUrl}/auth`;
+  private base = `${environment.apiBaseUrl}/api/auth`;
   private currentUserSig = signal<AuthResponse | null>(this.loadUser());
   currentUser = this.currentUserSig.asReadonly();
   isAuthenticated = computed(() => !!this.currentUserSig()?.token);
 
-  constructor(private router: Router, private http: HttpClient) {}
+  constructor(private router: Router, private http: HttpClient) { }
 
   login(req: LoginRequest): Observable<ApiResponse<AuthResponse>> {
     if (environment.useMock) {
@@ -39,7 +39,7 @@ export class AuthService {
       this.storeSession(auth);
       return of({ success: true, message: 'Login successful (static data)', data: auth, timestamp: new Date().toISOString() });
     }
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.base}/login`, req).pipe(
+    return this.http.post<ApiResponse<AuthResponse>>(`${this.base}/signin`, req).pipe(
       tap(res => { if (res.success && res.data) this.storeSession(res.data); })
     );
   }
@@ -54,7 +54,7 @@ export class AuthService {
       this.storeSession(auth);
       return of({ success: true, message: 'Registered (static — role VIEWER)', data: auth, timestamp: new Date().toISOString() });
     }
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.base}/register`, req).pipe(
+    return this.http.post<ApiResponse<AuthResponse>>(`${this.base}/signup`, req).pipe(
       tap(res => { if (res.success && res.data) this.storeSession(res.data); })
     );
   }

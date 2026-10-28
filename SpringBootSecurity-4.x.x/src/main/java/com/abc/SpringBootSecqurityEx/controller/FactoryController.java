@@ -49,7 +49,7 @@ public class FactoryController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER')")
     public ResponseEntity<ApiResponse<MasterDataDtos.FactoryResponse>> update(@PathVariable Long id,
-                                                                              @Valid @RequestBody FactoryRequest request) {
+                                                                              @Valid @RequestBody MasterDataDtos.FactoryRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(service.update(id, request), "Factory updated"));
     }
 

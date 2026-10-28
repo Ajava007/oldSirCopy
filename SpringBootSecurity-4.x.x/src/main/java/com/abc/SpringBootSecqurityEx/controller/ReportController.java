@@ -1,9 +1,11 @@
 package com.abc.SpringBootSecqurityEx.controller;
 
-import com.veynax.common.dto.ApiResponse;
-import com.veynax.reports.entity.GeneratedReport;
-import com.veynax.reports.service.ReportService;
+
+import com.abc.SpringBootSecqurityEx.dtos.ApiResponse;
+import com.abc.SpringBootSecqurityEx.entity.GeneratedReport;
+import com.abc.SpringBootSecqurityEx.service.ReportService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import net.sf.jasperreports.engine.JRException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

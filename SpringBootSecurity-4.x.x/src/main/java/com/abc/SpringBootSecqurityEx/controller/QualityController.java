@@ -66,7 +66,7 @@ public class QualityController {
     @PostMapping("/ncrs/{id}/transition")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','QUALITY_INSPECTOR')")
     public ResponseEntity<ApiResponse<QualityDtos.NcrResponse>> transitionNcr(@PathVariable Long id,
-                                                                              @Valid @RequestBody NcrTransitionRequest request) {
+                                                                              @Valid @RequestBody QualityDtos.NcrTransitionRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(ncrService.transition(id, request), "NCR transitioned"));
     }
 

@@ -3,6 +3,7 @@ package com.abc.SpringBootSecqurityEx.service;
 
 import com.abc.SpringBootSecqurityEx.dtos.WorkforceDtos;
 import com.abc.SpringBootSecqurityEx.entity.Certification;
+import com.abc.SpringBootSecqurityEx.entity.Employee;
 import com.abc.SpringBootSecqurityEx.repository.CertificationRepository;
 import com.abc.SpringBootSecqurityEx.repository.EmployeeRepository;
 import jakarta.persistence.EntityNotFoundException;

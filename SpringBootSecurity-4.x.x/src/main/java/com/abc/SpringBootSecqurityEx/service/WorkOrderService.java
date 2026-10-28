@@ -73,7 +73,8 @@ public class WorkOrderService {
     }
 
     @Transactional
-    public ProductionDtos.WoResponse transition(Long id, MaintenanceDtos.TransitionRequest req) {
+    public ProductionDtos.WoResponse transition(Long id, MaintenanceDtos.TransitionRequest req)
+    {
         WorkOrder wo = woRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Work order not found: " + id));
         String target = req.targetStatus().toUpperCase();

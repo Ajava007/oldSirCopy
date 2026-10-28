@@ -3,6 +3,10 @@ package com.abc.SpringBootSecqurityEx.service;
 
 import com.abc.SpringBootSecqurityEx.entity.GeneratedReport;
 import com.abc.SpringBootSecqurityEx.repository.GeneratedReportRepository;
+import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.pdf.JRPdfExporter;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

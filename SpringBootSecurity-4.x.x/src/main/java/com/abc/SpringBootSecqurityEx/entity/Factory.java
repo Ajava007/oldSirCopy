@@ -1,6 +1,6 @@
 package com.abc.SpringBootSecqurityEx.entity;
 
-import com.veynax.common.audit.BaseEntity;
+
 import jakarta.persistence.*;
 import lombok.*;
 
